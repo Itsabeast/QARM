@@ -1,0 +1,18 @@
+# Frontend
+streamlit
+
+# Config and environment
+pyyaml
+python-dotenv
+
+# Data and modeling
+pandas
+numpy
+cvxpy
+scipy
+yfinance
+requests
+
+# Visualization
+matplotlib
+plotly

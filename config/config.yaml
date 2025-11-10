@@ -1,0 +1,87 @@
+# ============================================
+#  Solvency II Parameters
+# ============================================
+solvency2:
+  equity:
+    type1: 0.39         # Developed markets equity shock
+    type2: 0.49         # Emerging markets equity shock
+  property: 0.25        # Property shock
+  correlation_base: 0.75
+
+# ============================================
+#  SCR Market Correlation Matrices
+# ============================================
+scr_correlation:
+  downward:             # Interest rate downward scenario
+    interest:
+      interest: 1.0
+      equity: 0.5
+      property: 0.5
+      spread: 0.5
+    equity:
+      interest: 0.5
+      equity: 1.0
+      property: 0.75
+      spread: 0.75
+    property:
+      interest: 0.5
+      equity: 0.75
+      property: 1.0
+      spread: 0.5
+    spread:
+      interest: 0.5
+      equity: 0.75
+      property: 0.5
+      spread: 1.0
+
+  upward:               # Interest rate upward scenario
+    interest:
+      interest: 1.0
+      equity: 0.0
+      property: 0.0
+      spread: 0.0
+    equity:
+      interest: 0.0
+      equity: 1.0
+      property: 0.75
+      spread: 0.75
+    property:
+      interest: 0.0
+      equity: 0.75
+      property: 1.0
+      spread: 0.5
+    spread:
+      interest: 0.0
+      equity: 0.75
+      property: 0.5
+      spread: 1.0
+
+# ============================================
+#  ETF Universe (EUR-denominated)
+# ============================================
+etfs:
+  corporate_bond:
+    name: "iShares Euro Corporate Bond 1–5yr UCITS ETF"
+    ticker: "IE15.L"
+    category: "Fixed Income"
+  property:
+    name: "iShares European Property Yield UCITS ETF"
+    ticker: "EUNK.DE"
+    category: "Real Estate"
+  equity_emerging:
+    name: "iShares MSCI Emerging Markets UCITS ETF EUR (Dist)"
+    ticker: "IQQE.DE"
+    category: "Equity – Emerging"
+  equity_developed:
+    name: "iShares MSCI World UCITS ETF EUR (Acc)"
+    ticker: "EUNL.DE"
+    category: "Equity – Developed"
+
+# ============================================
+#  Model Settings
+# ============================================
+model:
+  trading_days: 252
+  return_period: "1y"   # Used by expected_return_5y() for yf history()
+  base_currency: "EUR"
+
