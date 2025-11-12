@@ -937,36 +937,91 @@ else:
             help="Reduction in absolute duration gap"
         )
 
-    # Visual representation of duration matching
+    # ✅ CHART OUTSIDE COLUMNS - NOW IT GETS FULL WIDTH
     st.markdown("**Duration Matching Visualization**")
 
-    fig_dur, ax_dur = plt.subplots(figsize=(10, 4))
+    fig_dur, ax_dur = plt.subplots(figsize=(14, 7))
+
+    # Set style
+    ax_dur.set_facecolor('#f8f9fa')
+    fig_dur.patch.set_facecolor('white')
 
     categories = ['Current\nPortfolio', 'Optimal\nPortfolio', 'Liabilities']
     durations = [current_dur, optimal_dur, liab_duration]
     colors = ['#FF6B6B', '#4ECDC4', '#95E1D3']
 
-    bars = ax_dur.bar(categories, durations, color=colors, alpha=0.7, edgecolor='black', linewidth=1.5)
+    # Create bars with gradient effect
+    bars = ax_dur.bar(
+        categories,
+        durations,
+        color=colors,
+        alpha=0.85,
+        edgecolor='white',
+        linewidth=3,
+        width=0.65
+    )
+
+    # Add subtle shadow effect
+    for bar, color in zip(bars, colors):
+        bar.set_zorder(3)
+        ax_dur.bar(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height(),
+            width=bar.get_width(),
+            bottom=0,
+            color=color,
+            alpha=0.2,
+            zorder=2
+        )
 
     # Add value labels on bars
     for bar, dur in zip(bars, durations):
         height = bar.get_height()
-        ax_dur.text(bar.get_x() + bar.get_width() / 2., height,
-                    f'{dur:.2f}',
-                    ha='center', va='bottom', fontsize=11, fontweight='bold')
+        ax_dur.text(
+            bar.get_x() + bar.get_width() / 2.,
+            height + 0.2,
+            f'{dur:.2f}y',
+            ha='center',
+            va='bottom',
+            fontsize=14,
+            fontweight='bold',
+            bbox=dict(boxstyle='round,pad=0.6', facecolor='white', edgecolor='gray', alpha=0.85, linewidth=2)
+        )
 
     # Add horizontal line for liability duration
-    ax_dur.axhline(y=liab_duration, color='gray', linestyle='--',
-                   linewidth=2, alpha=0.5, label='Target (Liability Duration)')
+    ax_dur.axhline(
+        y=liab_duration,
+        color='#E74C3C',
+        linestyle='--',
+        linewidth=3,
+        alpha=0.7,
+        label='Target Duration',
+        zorder=1
+    )
 
-    ax_dur.set_ylabel('Duration (years)', fontsize=11)
-    ax_dur.set_title('Portfolio Duration vs Liability Duration', fontsize=13, fontweight='bold')
-    ax_dur.legend(fontsize=9)
-    ax_dur.grid(axis='y', alpha=0.3)
+    # Styling
+    ax_dur.set_ylabel('Duration (years)', fontsize=14, fontweight='bold', color='#2c3e50')
+    ax_dur.set_title('Portfolio Duration vs Liability Duration', fontsize=16, fontweight='bold', pad=20,
+                     color='#2c3e50')
+    ax_dur.legend(fontsize=12, frameon=True, shadow=True, loc='upper right')
+    ax_dur.grid(axis='y', alpha=0.3, linestyle='--', linewidth=1.2)
 
+    # Remove spines
+    ax_dur.spines['top'].set_visible(False)
+    ax_dur.spines['right'].set_visible(False)
+    ax_dur.spines['left'].set_linewidth(2)
+    ax_dur.spines['bottom'].set_linewidth(2)
+
+    # Set y-axis to start from 0 with padding
+    ax_dur.set_ylim(0, max(durations) * 1.25)
+
+    # Increase tick label size
+    ax_dur.tick_params(axis='both', which='major', labelsize=11)
+
+    plt.tight_layout()
     st.pyplot(fig_dur, use_container_width=True)
 
-    # Interpretation text
+    # Interpretation text (also outside columns)
     if abs(optimal_gap) < abs(current_gap):
         st.success(
             f"✅ **Improved Duration Matching**: The optimal portfolio reduces the duration gap "
@@ -1009,7 +1064,8 @@ else:
         )
 
         st.caption("Note: Duration contribution = Duration × Weight. Sum of contributions = Portfolio Duration.")
-    st.markdown("---")
+
+
     st.markdown("---")
 
     # Sensitivity Analysis
@@ -1467,18 +1523,211 @@ else:
                 except Exception as e:
                     st.error(f"Error in custom scenario: {str(e)}")
                     st.exception(e)
+    st.markdown("---")
+
     # Efficient frontier plot
     st.subheader("📉 Efficient Frontier")
 
-    fig, ax = plot_frontier(
-        opt_df,
-        current_sol=current_sol,
-        current_ret=current_ret,
-        min_sol_pct=90,
-        title="Efficient Frontier: Return vs Solvency",
-        show=False
+    fig_frontier, ax_frontier = plt.subplots(figsize=(12, 7))
+
+    # Modern styling
+    ax_frontier.set_facecolor('#f8f9fa')
+    fig_frontier.patch.set_facecolor('white')
+
+    # Plot the efficient frontier line with simple styling
+    ax_frontier.scatter(
+        opt_df["solvency"] * 100,
+        opt_df["return"] * 100,
+        s=80,
+        color='#4ECDC4',
+        alpha=0.6,
+        edgecolors='white',
+        linewidth=1.5,
+        zorder=2
     )
-    st.pyplot(fig, use_container_width=True)
+
+    # Connect with line
+    ax_frontier.plot(
+        opt_df["solvency"] * 100,
+        opt_df["return"] * 100,
+        '-',
+        color='#4ECDC4',
+        linewidth=2.5,
+        alpha=0.4,
+        label='Efficient Frontier',
+        zorder=1
+    )
+
+    # Highlight the OPTIMAL portfolio with glow
+    optimal_solvency = best["solvency"] * 100
+    optimal_return = best["return"] * 100
+
+    # Outer glow
+    ax_frontier.scatter(
+        optimal_solvency, optimal_return,
+        s=1000, c='#FFD700', marker='*',
+        alpha=0.2, edgecolors='none', zorder=4
+    )
+    # Middle glow
+    ax_frontier.scatter(
+        optimal_solvency, optimal_return,
+        s=700, c='#FFD700', marker='*',
+        alpha=0.4, edgecolors='none', zorder=4
+    )
+    # Main star
+    ax_frontier.scatter(
+        optimal_solvency, optimal_return,
+        s=600, c='#FFD700', marker='*',
+        edgecolors='#FF8C00', linewidth=3,
+        label='Optimal Portfolio',
+        zorder=5
+    )
+
+    # Add annotation with modern styling
+    ax_frontier.annotate(
+        f'OPTIMAL\n{optimal_return:.2f}% | {optimal_solvency:.1f}%',
+        xy=(optimal_solvency, optimal_return),
+        xytext=(25, 25),
+        textcoords='offset points',
+        fontsize=10,
+        fontweight='bold',
+        bbox=dict(
+            boxstyle='round,pad=0.8',
+            facecolor='#FFD700',
+            edgecolor='#FF8C00',
+            linewidth=2.5,
+            alpha=0.9
+        ),
+        arrowprops=dict(
+            arrowstyle='->',
+            connectionstyle='arc3,rad=0.3',
+            color='#FF8C00',
+            lw=2.5
+        ),
+        color='#2c3e50',
+        zorder=6
+    )
+
+    # Plot the CURRENT portfolio with better styling
+    ax_frontier.scatter(
+        current_sol * 100, current_ret * 100,
+        s=400, c='#E74C3C', marker='D',
+        edgecolors='#C0392B', linewidth=3,
+        label='Current Portfolio', zorder=4,
+        alpha=0.9
+    )
+
+    # Annotation for current
+    ax_frontier.annotate(
+        f'Current\n{current_ret * 100:.2f}% | {current_sol * 100:.1f}%',
+        xy=(current_sol * 100, current_ret * 100),
+        xytext=(-70, -35),
+        textcoords='offset points',
+        fontsize=9,
+        fontweight='bold',
+        bbox=dict(
+            boxstyle='round,pad=0.6',
+            facecolor='#E74C3C',
+            edgecolor='#C0392B',
+            linewidth=2,
+            alpha=0.8
+        ),
+        arrowprops=dict(
+            arrowstyle='->',
+            connectionstyle='arc3,rad=-0.3',
+            color='#C0392B',
+            lw=2
+        ),
+        color='white',
+        zorder=6
+    )
+
+    # Add 100% solvency line
+    ax_frontier.axvline(
+        x=100,
+        color='#95a5a6',
+        linestyle='--',
+        linewidth=2.5,
+        alpha=0.6,
+        label='100% Solvency',
+        zorder=0
+    )
+
+    # Modern styling
+    ax_frontier.set_xlabel('Solvency Ratio (%)', fontsize=12, fontweight='bold', color='#2c3e50')
+    ax_frontier.set_ylabel('Expected Return (%)', fontsize=12, fontweight='bold', color='#2c3e50')
+    ax_frontier.set_title('Efficient Frontier: Return vs Solvency', fontsize=15, fontweight='bold', pad=20,
+                          color='#2c3e50')
+    ax_frontier.grid(True, alpha=0.25, linestyle='--', linewidth=1, color='gray')
+
+    # ✅ FIXED LEGEND - top right, smaller markers
+    # ✅ LARGER LEGEND BOX with better spacing
+    legend = ax_frontier.legend(
+        loc='upper right',
+        fontsize=10,  # ✅ Increased from 9 to 10
+        frameon=True,
+        shadow=True,
+        fancybox=True,
+        framealpha=0.95,
+        edgecolor='gray',
+        ncol=1,
+        borderpad=1.2,  # ✅ Increased from 0.8 to 1.2 (more internal padding)
+        labelspacing=1.0,  # ✅ Increased from 0.6 to 1.0 (more space between items)
+        handlelength=2.5,  # ✅ Longer marker lines
+        handleheight=1.5,  # ✅ Taller marker area
+        markerscale=0.7,  # ✅ Slightly larger markers (was 0.6)
+        handletextpad=1.0,  # ✅ More space between marker and text
+        borderaxespad=0.8  # ✅ Distance from plot edge
+    )
+
+
+    # Remove top and right spines
+    ax_frontier.spines['top'].set_visible(False)
+    ax_frontier.spines['right'].set_visible(False)
+    ax_frontier.spines['left'].set_linewidth(1.5)
+    ax_frontier.spines['bottom'].set_linewidth(1.5)
+
+    # Set axis limits with padding
+    x_min, x_max = opt_df["solvency"].min() * 100, opt_df["solvency"].max() * 100
+    y_min, y_max = opt_df["return"].min() * 100, opt_df["return"].max() * 100
+
+    x_padding = (x_max - x_min) * 0.12
+    y_padding = (y_max - y_min) * 0.15
+
+    ax_frontier.set_xlim(x_min - x_padding, x_max + x_padding)
+    ax_frontier.set_ylim(y_min - y_padding, y_max + y_padding)
+
+    plt.tight_layout()
+    st.pyplot(fig_frontier, use_container_width=True)
+
+    # Add interpretation text
+    improvement_return = (optimal_return - current_ret * 100)
+    improvement_solvency = (optimal_solvency - current_sol * 100)
+
+    if improvement_return > 0 and improvement_solvency > 0:
+        st.success(
+            f"✅ **Win-Win Optimization**: The optimal portfolio improves both metrics:\n"
+            f"- Return: +{improvement_return:.2f}pp ({current_ret * 100:.2f}% → {optimal_return:.2f}%)\n"
+            f"- Solvency: +{improvement_solvency:.1f}pp ({current_sol * 100:.1f}% → {optimal_solvency:.1f}%)"
+        )
+    elif improvement_return > 0:
+        st.info(
+            f"📊 **Return Focus**: The optimal portfolio trades some solvency for higher returns:\n"
+            f"- Return: +{improvement_return:.2f}pp\n"
+            f"- Solvency: {improvement_solvency:.1f}pp"
+        )
+    elif improvement_solvency > 0:
+        st.info(
+            f"🛡️ **Safety Focus**: The optimal portfolio prioritizes solvency:\n"
+            f"- Return: {improvement_return:.2f}pp\n"
+            f"- Solvency: +{improvement_solvency:.1f}pp"
+        )
+    else:
+        st.warning(
+            f"⚠️ The current portfolio is already near-optimal on the efficient frontier."
+        )
+
+    st.markdown("---")
 
     st.markdown("---")
 
@@ -1523,18 +1772,21 @@ else:
     # Pie charts comparison
     st.markdown("**Visual Allocation Comparison**")
 
-    fig_pie, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+    fig_pie, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 7))
+
+    # Modern styling
+    fig_pie.patch.set_facecolor('white')
 
     asset_labels = ["Gov Bonds", "Corp Bonds", "Equity Type 1",
                     "Equity Type 2", "Property", "T-Bills"]
 
+    # Modern color palette (more vibrant)
     colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DFE6E9']
 
 
-    # Helper function to format labels
     def make_autopct(values):
         def my_autopct(pct):
-            return f'{pct:.1f}%' if pct > 3 else ''  # Only show % if slice > 3%
+            return f'{pct:.1f}%' if pct > 3 else ''
 
         return my_autopct
 
@@ -1542,72 +1794,73 @@ else:
     # Current allocation pie chart
     current_weights = initial_asset["asset_weight"].values * 100
 
-    # Keep all data but control label display
     wedges1, texts1, autotexts1 = ax1.pie(
         current_weights,
-        labels=None,  # Remove labels from pie
+        labels=None,
         colors=colors,
         autopct=make_autopct(current_weights),
         startangle=90,
-        textprops={'fontsize': 10, 'weight': 'bold'},
-        pctdistance=0.85
+        textprops={'fontsize': 11, 'weight': 'bold'},
+        pctdistance=0.80,
+        explode=[0.03 if w > 10 else 0 for w in current_weights],  # Slight explode for large slices
+        shadow=True,  # Add shadow
+        wedgeprops={'edgecolor': 'white', 'linewidth': 2, 'antialiased': True}
     )
 
-    # Make percentage text more visible
+    # Style percentage labels
     for autotext in autotexts1:
         autotext.set_color('white')
-        autotext.set_fontsize(10)
-        autotext.set_weight('bold')
+        autotext.set_fontsize(11)
+        autotext.set_fontweight('bold')
+        autotext.set_bbox(dict(boxstyle='round,pad=0.3', facecolor='black', alpha=0.3))
 
-    ax1.set_title('Current Portfolio', fontsize=13, fontweight='bold', pad=20)
+    ax1.set_title('Current Portfolio', fontsize=14, fontweight='bold', pad=25, color='#2c3e50')
 
     # Optimal allocation pie chart
     optimal_weights = best["w_opt"] * 100
 
     wedges2, texts2, autotexts2 = ax2.pie(
         optimal_weights,
-        labels=None,  # Remove labels from pie
+        labels=None,
         colors=colors,
         autopct=make_autopct(optimal_weights),
         startangle=90,
-        textprops={'fontsize': 10, 'weight': 'bold'},
-        pctdistance=0.85
+        textprops={'fontsize': 11, 'weight': 'bold'},
+        pctdistance=0.80,
+        explode=[0.03 if w > 10 else 0 for w in optimal_weights],
+        shadow=True,
+        wedgeprops={'edgecolor': 'white', 'linewidth': 2, 'antialiased': True}
     )
 
     for autotext in autotexts2:
         autotext.set_color('white')
-        autotext.set_fontsize(10)
-        autotext.set_weight('bold')
+        autotext.set_fontsize(11)
+        autotext.set_fontweight('bold')
+        autotext.set_bbox(dict(boxstyle='round,pad=0.3', facecolor='black', alpha=0.3))
 
-    ax2.set_title('Optimal Portfolio', fontsize=13, fontweight='bold', pad=20)
+    ax2.set_title('Optimal Portfolio', fontsize=14, fontweight='bold', pad=25, color='#2c3e50')
 
-    # Add a shared legend below the charts
-    legend_labels = [f"{label}: {weight:.1f}%" for label, weight in zip(asset_labels, current_weights)]
+    # Modern legend
     fig_pie.legend(
         wedges1,
-        legend_labels,
-        title="Asset Classes (Current)",
-        loc="lower left",
-        bbox_to_anchor=(0.05, -0.05),
-        ncol=3,
-        fontsize=9
-    )
-
-    legend_labels_opt = [f"{label}: {weight:.1f}%" for label, weight in zip(asset_labels, optimal_weights)]
-    fig_pie.legend(
-        wedges2,
-        legend_labels_opt,
-        title="Asset Classes (Optimal)",
-        loc="lower right",
-        bbox_to_anchor=(0.95, -0.05),
-        ncol=3,
-        fontsize=9
+        [f"{label}" for label in asset_labels],
+        title="Asset Classes",
+        title_fontsize=11,
+        fontsize=10,
+        loc="lower center",
+        bbox_to_anchor=(0.5, -0.08),
+        ncol=6,
+        frameon=True,
+        fancybox=True,
+        shadow=True,
+        framealpha=0.95,
+        edgecolor='gray'
     )
 
     plt.tight_layout()
     st.pyplot(fig_pie, use_container_width=True)
 
-    # Key changes summary
+    # Key changes with better formatting
     st.markdown("**Key Allocation Changes:**")
 
     changes = []
@@ -1616,15 +1869,21 @@ else:
         optimal_w = best["w_opt"][i] * 100
         change = optimal_w - current_w
 
-        if abs(change) > 1.0:  # Only show significant changes
-            direction = "↑" if change > 0 else "↓"
-            color = "🟢" if change > 0 else "🔴"
-            changes.append(
-                f"{color} **{label}**: {direction} {abs(change):.1f}pp ({current_w:.1f}% → {optimal_w:.1f}%)")
+        if abs(change) > 1.0:
+            if change > 0:
+                changes.append(f"🟢 **{label}**: ↑ {abs(change):.1f}pp ({current_w:.1f}% → {optimal_w:.1f}%)")
+            else:
+                changes.append(f"🔴 **{label}**: ↓ {abs(change):.1f}pp ({current_w:.1f}% → {optimal_w:.1f}%)")
 
     if changes:
-        for change in changes:
-            st.markdown(change)
+        cols = st.columns(2)
+        mid = len(changes) // 2
+        with cols[0]:
+            for change in changes[:mid]:
+                st.markdown(change)
+        with cols[1]:
+            for change in changes[mid:]:
+                st.markdown(change)
     else:
         st.info("No significant allocation changes (< 1 percentage point)")
     st.markdown("---")
