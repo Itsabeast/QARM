@@ -10,6 +10,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import yfinance as yf
 from datetime import datetime, timedelta
+import json
+import openpyxl
+from io import BytesIO
 
 # --- Make project root importable ---
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -43,8 +46,8 @@ if "nav" not in st.session_state:
 st.sidebar.title("Navigation")
 st.session_state["nav"] = st.sidebar.radio(
     "Go to:",
-    ["Inputs", "Results"],
-    index=["Inputs", "Results"].index(st.session_state["nav"])
+    ["Inputs", "Results", "Interactive Portfolio Selector"],
+    index=["Inputs", "Results", "Interactive Portfolio Selector"].index(st.session_state["nav"])
 )
 
 
@@ -764,6 +767,7 @@ if st.session_state["nav"] == "Inputs":
                     params=params
                 )
 
+
                 # Store results
                 st.session_state["opt_df"] = opt_df
                 st.session_state["initial_asset"] = initial_asset
@@ -783,7 +787,7 @@ if st.session_state["nav"] == "Inputs":
 # --------------------------
 # RESULTS PAGE
 # --------------------------
-else:
+elif st.session_state["nav"] == "Results":
     st.title("📈 Optimization Results")
 
     # Show if auto-calculation was used
@@ -1860,6 +1864,516 @@ else:
     plt.tight_layout()
     st.pyplot(fig_pie, use_container_width=True)
 
+    st.markdown("---")
+
+    # Export/Download Section
+    st.subheader("💾 Export Results")
+
+    st.markdown("Download your optimization results in various formats for reporting and further analysis.")
+
+    col_export1, col_export2, col_export3 = st.columns(3)
+
+    with col_export1:
+        st.markdown("**📊 Allocation Data**")
+
+        # Create allocation export dataframe
+        allocation_export = pd.DataFrame({
+            "Asset Class": ["Government Bonds", "Corporate Bonds", "Equity Type 1",
+                            "Equity Type 2", "Property", "Treasury Bills"],
+            "Current Amount (€m)": initial_asset["asset_val"].values,
+            "Optimal Amount (€m)": best["A_opt"],
+            "Change Amount (€m)": best["A_opt"] - initial_asset["asset_val"].values,
+            "Current Weight (%)": initial_asset["asset_weight"].values * 100,
+            "Optimal Weight (%)": best["w_opt"] * 100,
+            "Change Weight (pp)": (best["w_opt"] - initial_asset["asset_weight"].values) * 100
+        })
+
+        csv_allocation = allocation_export.to_csv(index=False)
+        st.download_button(
+            label="📥 Download Allocation",
+            data=csv_allocation,
+            file_name=f"optimal_allocation_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+            mime="text/csv",
+            use_container_width=True,
+            help="Download optimal vs current allocation as CSV"
+        )
+
+    with col_export2:
+        st.markdown("**📈 Frontier Data**")
+
+        # Create frontier export dataframe
+        frontier_export = opt_df[["gamma", "return", "SCR_market", "solvency", "objective"]].copy()
+        frontier_export["return_pct"] = frontier_export["return"] * 100
+        frontier_export["solvency_pct"] = frontier_export["solvency"] * 100
+
+        # Add allocations to frontier data
+        for i, asset in enumerate(["Gov", "Corp", "Eq1", "Eq2", "Prop", "TB"]):
+            frontier_export[f"{asset}_weight_%"] = opt_df["w_opt"].apply(lambda x: x[i] * 100)
+
+        frontier_export = frontier_export[[
+            "gamma", "return_pct", "solvency_pct", "SCR_market", "objective",
+            "Gov_weight_%", "Corp_weight_%", "Eq1_weight_%", "Eq2_weight_%", "Prop_weight_%", "TB_weight_%"
+        ]]
+
+        csv_frontier = frontier_export.to_csv(index=False)
+        st.download_button(
+            label="📥 Download Frontier",
+            data=csv_frontier,
+            file_name=f"efficient_frontier_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+            mime="text/csv",
+            use_container_width=True,
+            help="Download complete efficient frontier data"
+        )
+
+    with col_export3:
+        st.markdown("**📄 Summary Report**")
+
+        # Create comprehensive text report
+        summary_text = f"""SOLVENCY II ASSET ALLOCATION OPTIMIZATION REPORT
+    {'=' * 60}
+    Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+    {'=' * 60}
+    PORTFOLIO SUMMARY
+    {'=' * 60}
+    Total Assets:              €{initial_asset['asset_val'].sum():>12.1f}m
+    Best Estimate Liabilities: €{liab_value:>12.1f}m
+    Liability Duration:        {liab_duration:>12.2f} years
+
+    {'=' * 60}
+    CURRENT PORTFOLIO
+    {'=' * 60}
+    Expected Return:           {current_ret:>12.2%}
+    Solvency Ratio:            {current_sol * 100:>12.1f}%
+    SCR Market:                €{current_SCR:>12.1f}m
+    Portfolio Duration:        {current_dur:>12.2f} years
+    Duration Gap:              {current_gap:>12.2f} years
+
+    {'=' * 60}
+    OPTIMAL PORTFOLIO
+    {'=' * 60}
+    Expected Return:           {best_ret:>12.2%}
+    Solvency Ratio:            {best_sol * 100:>12.1f}%
+    SCR Market:                €{best_SCR:>12.1f}m
+    Basic Own Funds:           €{best_BOF:>12.1f}m
+    Portfolio Duration:        {optimal_dur:>12.2f} years
+    Duration Gap:              {optimal_gap:>12.2f} years
+    Optimization Objective:    {best['objective']:>12.4f}
+
+    {'=' * 60}
+    IMPROVEMENTS
+    {'=' * 60}
+    Return Change:             {(best_ret - current_ret):>12.2%} ({(best_ret - current_ret) * 100:+.2f}pp)
+    Solvency Change:           {(best_sol - current_sol) * 100:>12.1f}% ({(best_sol - current_sol) * 100:+.1f}pp)
+    SCR Change:                €{(best_SCR - current_SCR):>12.1f}m
+    Duration Gap Change:       {(optimal_gap - current_gap):>12.2f} years
+
+    {'=' * 60}
+    OPTIMAL ALLOCATION
+    {'=' * 60}
+    Asset Class              Amount (€m)    Weight (%)    Change (€m)    Change (pp)
+    {'-' * 80}
+    """
+
+        for i, asset in enumerate(["Government Bonds", "Corporate Bonds", "Equity Type 1",
+                                   "Equity Type 2", "Property", "Treasury Bills"]):
+            curr_amt = initial_asset["asset_val"].values[i]
+            opt_amt = best["A_opt"][i]
+            curr_wgt = initial_asset["asset_weight"].values[i] * 100
+            opt_wgt = best["w_opt"][i] * 100
+
+            summary_text += f"{asset:<24} {opt_amt:>10.1f}    {opt_wgt:>9.1f}    {(opt_amt - curr_amt):>10.1f}    {(opt_wgt - curr_wgt):>+10.1f}\n"
+
+        summary_text += f"""
+    {'=' * 60}
+    RISK METRICS
+    {'=' * 60}
+    SCR Market Risk:           €{best_SCR:>12.1f}m
+    Risk Aversion Parameter:   {best['gamma']:>12.4f}
+    """
+
+        # Add duration analysis
+        summary_text += f"""
+    {'=' * 60}
+    DURATION ANALYSIS
+    {'=' * 60}
+    Target (Liability):        {liab_duration:>12.2f} years
+    Current Portfolio:         {current_dur:>12.2f} years
+    Optimal Portfolio:         {optimal_dur:>12.2f} years
+    Gap Improvement:           {abs(current_gap) - abs(optimal_gap):>12.2f} years
+
+    """
+
+        if abs(optimal_gap) < abs(current_gap):
+            summary_text += f"✓ Duration matching IMPROVED ({abs(current_gap):.2f}y → {abs(optimal_gap):.2f}y)\n"
+        elif abs(optimal_gap) > abs(current_gap):
+            summary_text += f"⚠ Duration gap INCREASED for higher returns ({abs(current_gap):.2f}y → {abs(optimal_gap):.2f}y)\n"
+        else:
+            summary_text += f"→ Duration gap UNCHANGED ({abs(optimal_gap):.2f}y)\n"
+
+        summary_text += f"""
+    {'=' * 60}
+    NOTES
+    {'=' * 60}
+    - All amounts in millions of euros (€m)
+    - Returns are annualized
+    - Duration is modified duration
+    - pp = percentage points
+    - SCR = Solvency Capital Requirement
+
+    {'=' * 60}
+    End of Report
+    {'=' * 60}
+    """
+
+        st.download_button(
+            label="📥 Download Report",
+            data=summary_text,
+            file_name=f"optimization_report_{datetime.now().strftime('%Y%m%d_%H%M')}.txt",
+            mime="text/plain",
+            use_container_width=True,
+            help="Download comprehensive text report"
+        )
+
+        # Additional export options in expandable section
+        with st.expander("🔧 Advanced Export Options"):
+
+            col_xl1, col_xl2 = st.columns(2)
+
+            with col_xl1:
+                st.markdown("**📊 Export as Excel Workbook**")
+                st.caption("Comprehensive workbook with multiple sheets")
+
+                # Create Excel file in memory
+                output = BytesIO()
+
+                with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                    # Sheet 1: Summary
+                    summary_df = pd.DataFrame({
+                        "Metric": [
+                            "Total Assets (€m)",
+                            "Liabilities (€m)",
+                            "Liability Duration (years)",
+                            "",
+                            "=== CURRENT PORTFOLIO ===",
+                            "Expected Return (%)",
+                            "Solvency Ratio (%)",
+                            "SCR Market (€m)",
+                            "Portfolio Duration (years)",
+                            "Duration Gap (years)",
+                            "",
+                            "=== OPTIMAL PORTFOLIO ===",
+                            "Expected Return (%)",
+                            "Solvency Ratio (%)",
+                            "SCR Market (€m)",
+                            "Basic Own Funds (€m)",
+                            "Portfolio Duration (years)",
+                            "Duration Gap (years)",
+                            "Objective Value",
+                            "",
+                            "=== IMPROVEMENTS ===",
+                            "Return Change (pp)",
+                            "Solvency Change (pp)",
+                            "SCR Change (€m)",
+                            "Duration Gap Change (years)"
+                        ],
+                        "Value": [
+                            initial_asset['asset_val'].sum(),
+                            liab_value,
+                            liab_duration,
+                            "",
+                            "",
+                            current_ret * 100,
+                            current_sol * 100,
+                            current_SCR,
+                            current_dur,
+                            current_gap,
+                            "",
+                            "",
+                            best_ret * 100,
+                            best_sol * 100,
+                            best_SCR,
+                            best_BOF,
+                            optimal_dur,
+                            optimal_gap,
+                            best["objective"],
+                            "",
+                            "",
+                            (best_ret - current_ret) * 100,
+                            (best_sol - current_sol) * 100,
+                            best_SCR - current_SCR,
+                            optimal_gap - current_gap
+                        ]
+                    })
+                    summary_df.to_excel(writer, sheet_name='Summary', index=False)
+
+                    # Sheet 2: Allocation Comparison
+                    allocation_detail = pd.DataFrame({
+                        "Asset Class": ["Government Bonds", "Corporate Bonds", "Equity Type 1",
+                                        "Equity Type 2", "Property", "Treasury Bills"],
+                        "Current Amount (€m)": initial_asset["asset_val"].values,
+                        "Current Weight (%)": initial_asset["asset_weight"].values * 100,
+                        "Optimal Amount (€m)": best["A_opt"],
+                        "Optimal Weight (%)": best["w_opt"] * 100,
+                        "Change Amount (€m)": best["A_opt"] - initial_asset["asset_val"].values,
+                        "Change Weight (pp)": (best["w_opt"] - initial_asset["asset_weight"].values) * 100,
+                        "Current Return (%)": initial_asset["asset_ret"].values * 100,
+                        "Duration (years)": initial_asset["asset_dur"].values
+                    })
+                    allocation_detail.to_excel(writer, sheet_name='Allocation', index=False)
+
+                    # Sheet 3: Efficient Frontier
+                    frontier_detail = opt_df[["gamma", "return", "SCR_market", "solvency", "objective"]].copy()
+                    frontier_detail["Return (%)"] = frontier_detail["return"] * 100
+                    frontier_detail["Solvency (%)"] = frontier_detail["solvency"] * 100
+                    frontier_detail = frontier_detail.drop(columns=["return", "solvency"])
+
+                    # Add allocations
+                    for i, asset in enumerate(
+                            ["Gov Bonds", "Corp Bonds", "Equity 1", "Equity 2", "Property", "T-Bills"]):
+                        frontier_detail[f"{asset} (%)"] = opt_df["w_opt"].apply(lambda x: x[i] * 100)
+
+                    frontier_detail.to_excel(writer, sheet_name='Efficient Frontier', index=False)
+
+                    # Sheet 4: Duration Analysis
+                    duration_df = pd.DataFrame({
+                        "Metric": [
+                            "Liability Duration (years)",
+                            "Current Portfolio Duration (years)",
+                            "Optimal Portfolio Duration (years)",
+                            "Current Duration Gap (years)",
+                            "Optimal Duration Gap (years)",
+                            "Gap Improvement (years)",
+                            "",
+                            "=== DURATION CONTRIBUTION ===",
+                            "Asset Class",
+                            "Government Bonds",
+                            "Corporate Bonds",
+                            "Equity Type 1",
+                            "Equity Type 2",
+                            "Property",
+                            "Treasury Bills"
+                        ],
+                        "Value": [
+                            liab_duration,
+                            current_dur,
+                            optimal_dur,
+                            current_gap,
+                            optimal_gap,
+                            abs(current_gap) - abs(optimal_gap),
+                            "",
+                            "",
+                            "Duration (years)",
+                            initial_asset["asset_dur"].values[0],
+                            initial_asset["asset_dur"].values[1],
+                            initial_asset["asset_dur"].values[2],
+                            initial_asset["asset_dur"].values[3],
+                            initial_asset["asset_dur"].values[4],
+                            initial_asset["asset_dur"].values[5]
+                        ],
+                        "Current Weight (%)": [
+                            "", "", "", "", "", "", "", "", "",
+                            initial_asset["asset_weight"].values[0] * 100,
+                            initial_asset["asset_weight"].values[1] * 100,
+                            initial_asset["asset_weight"].values[2] * 100,
+                            initial_asset["asset_weight"].values[3] * 100,
+                            initial_asset["asset_weight"].values[4] * 100,
+                            initial_asset["asset_weight"].values[5] * 100
+                        ],
+                        "Optimal Weight (%)": [
+                            "", "", "", "", "", "", "", "", "",
+                            best["w_opt"][0] * 100,
+                            best["w_opt"][1] * 100,
+                            best["w_opt"][2] * 100,
+                            best["w_opt"][3] * 100,
+                            best["w_opt"][4] * 100,
+                            best["w_opt"][5] * 100
+                        ]
+                    })
+                    duration_df.to_excel(writer, sheet_name='Duration Analysis', index=False)
+
+                    # Sheet 5: Risk Metrics
+                    cfg = load_config()
+                    solv = get_solvency_params(cfg)
+
+                    risk_df = pd.DataFrame({
+                        "Asset Class": ["Government Bonds", "Corporate Bonds", "Equity Type 1",
+                                        "Equity Type 2", "Property", "Treasury Bills"],
+                        "Optimal Weight (%)": best["w_opt"] * 100,
+                        "Optimal Amount (€m)": best["A_opt"],
+                        "Shock (%)": [
+                            1.1,  # IR shock approx
+                            10.3,  # Spread shock approx
+                            solv["equity_1_param"] * 100,
+                            solv["equity_2_param"] * 100,
+                            solv["prop_params"] * 100,
+                            1.1  # IR shock approx
+                        ],
+                        "Risk Contribution (€m)": [
+                            best["A_opt"][0] * 0.011,
+                            best["A_opt"][1] * 0.103,
+                            best["A_opt"][2] * solv["equity_1_param"],
+                            best["A_opt"][3] * solv["equity_2_param"],
+                            best["A_opt"][4] * solv["prop_params"],
+                            best["A_opt"][5] * 0.011
+                        ]
+                    })
+                    risk_df.to_excel(writer, sheet_name='Risk Metrics', index=False)
+
+                    # Sheet 6: Metadata
+                    metadata_df = pd.DataFrame({
+                        "Parameter": [
+                            "Report Generated",
+                            "Optimization Tool",
+                            "Model",
+                            "",
+                            "Total Frontier Points",
+                            "Optimal Gamma",
+                            "Optimal Objective Value",
+                            "",
+                            "Auto-Calculation Used"
+                        ],
+                        "Value": [
+                            datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                            "Solvency II Asset Allocation Optimizer",
+                            "Mean-Variance with Solvency Constraints",
+                            "",
+                            len(opt_df),
+                            best["gamma"],
+                            best["objective"],
+                            "",
+                            "Yes" if st.session_state.get("auto_calculated", False) else "No"
+                        ]
+                    })
+                    metadata_df.to_excel(writer, sheet_name='Metadata', index=False)
+
+                    # Format the workbook
+                    workbook = writer.book
+
+                    # Format Summary sheet
+                    summary_sheet = writer.sheets['Summary']
+                    summary_sheet.column_dimensions['A'].width = 35
+                    summary_sheet.column_dimensions['B'].width = 20
+
+                    # Format Allocation sheet
+                    allocation_sheet = writer.sheets['Allocation']
+                    for col in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I']:
+                        allocation_sheet.column_dimensions[col].width = 18
+
+                    # Format Frontier sheet
+                    frontier_sheet = writer.sheets['Efficient Frontier']
+                    for col in range(1, 15):  # Adjust based on columns
+                        frontier_sheet.column_dimensions[openpyxl.utils.get_column_letter(col)].width = 15
+
+                    # Format Duration sheet
+                    duration_sheet = writer.sheets['Duration Analysis']
+                    duration_sheet.column_dimensions['A'].width = 35
+                    duration_sheet.column_dimensions['B'].width = 20
+                    duration_sheet.column_dimensions['C'].width = 20
+                    duration_sheet.column_dimensions['D'].width = 20
+
+                    # Format Risk sheet
+                    risk_sheet = writer.sheets['Risk Metrics']
+                    for col in ['A', 'B', 'C', 'D', 'E']:
+                        risk_sheet.column_dimensions[col].width = 20
+
+                # Get the Excel file from memory
+                excel_data = output.getvalue()
+
+                st.download_button(
+                    label="📥 Download Excel Workbook",
+                    data=excel_data,
+                    file_name=f"portfolio_optimization_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True,
+                    help="Download comprehensive Excel workbook with 6 sheets"
+                )
+
+                st.caption(
+                    "📋 **Includes 6 sheets**: Summary, Allocation, Efficient Frontier, Duration Analysis, Risk Metrics, Metadata")
+
+            with col_xl2:
+                # JSON export for programmatic use
+                st.markdown("**📦 Export as JSON (for API/Python)**")
+                st.caption("Structured data for programmatic access")
+
+                json_export = {
+                    "metadata": {
+                        "generated": datetime.now().isoformat(),
+                        "total_assets": float(initial_asset['asset_val'].sum()),
+                        "liabilities": float(liab_value),
+                        "liability_duration": float(liab_duration),
+                        "auto_calculation_used": st.session_state.get("auto_calculated", False)
+                    },
+                    "current_portfolio": {
+                        "return": float(current_ret),
+                        "solvency_ratio": float(current_sol),
+                        "SCR_market": float(current_SCR),
+                        "duration": float(current_dur),
+                        "duration_gap": float(current_gap),
+                        "allocation": {
+                            "Government_Bonds": float(initial_asset["asset_val"].values[0]),
+                            "Corporate_Bonds": float(initial_asset["asset_val"].values[1]),
+                            "Equity_Type_1": float(initial_asset["asset_val"].values[2]),
+                            "Equity_Type_2": float(initial_asset["asset_val"].values[3]),
+                            "Property": float(initial_asset["asset_val"].values[4]),
+                            "Treasury_Bills": float(initial_asset["asset_val"].values[5])
+                        },
+                        "weights": {
+                            "Government_Bonds": float(initial_asset["asset_weight"].values[0]),
+                            "Corporate_Bonds": float(initial_asset["asset_weight"].values[1]),
+                            "Equity_Type_1": float(initial_asset["asset_weight"].values[2]),
+                            "Equity_Type_2": float(initial_asset["asset_weight"].values[3]),
+                            "Property": float(initial_asset["asset_weight"].values[4]),
+                            "Treasury_Bills": float(initial_asset["asset_weight"].values[5])
+                        }
+                    },
+                    "optimal_portfolio": {
+                        "return": float(best_ret),
+                        "solvency_ratio": float(best_sol),
+                        "SCR_market": float(best_SCR),
+                        "BOF": float(best_BOF),
+                        "duration": float(optimal_dur),
+                        "duration_gap": float(optimal_gap),
+                        "objective": float(best["objective"]),
+                        "gamma": float(best["gamma"]),
+                        "allocation": {
+                            "Government_Bonds": float(best["A_opt"][0]),
+                            "Corporate_Bonds": float(best["A_opt"][1]),
+                            "Equity_Type_1": float(best["A_opt"][2]),
+                            "Equity_Type_2": float(best["A_opt"][3]),
+                            "Property": float(best["A_opt"][4]),
+                            "Treasury_Bills": float(best["A_opt"][5])
+                        },
+                        "weights": {
+                            "Government_Bonds": float(best["w_opt"][0]),
+                            "Corporate_Bonds": float(best["w_opt"][1]),
+                            "Equity_Type_1": float(best["w_opt"][2]),
+                            "Equity_Type_2": float(best["w_opt"][3]),
+                            "Property": float(best["w_opt"][4]),
+                            "Treasury_Bills": float(best["w_opt"][5])
+                        }
+                    },
+                    "improvements": {
+                        "return_change_pp": float((best_ret - current_ret) * 100),
+                        "solvency_change_pp": float((best_sol - current_sol) * 100),
+                        "SCR_change": float(best_SCR - current_SCR),
+                        "duration_gap_change": float(optimal_gap - current_gap)
+                    }
+                }
+
+                json_string = json.dumps(json_export, indent=2)
+                st.download_button(
+                    label="📥 Download JSON",
+                    data=json_string,
+                    file_name=f"optimization_results_{datetime.now().strftime('%Y%m%d_%H%M')}.json",
+                    mime="application/json",
+                    use_container_width=True,
+                    help="Structured JSON format for APIs and Python scripts"
+                )
+
+        st.markdown("---")
+
     # Key changes with better formatting
     st.markdown("**Key Allocation Changes:**")
 
@@ -1887,20 +2401,685 @@ else:
     else:
         st.info("No significant allocation changes (< 1 percentage point)")
     st.markdown("---")
+# --------------------------
+# INTERACTIVE PORTFOLIO SELECTOR PAGE
+# --------------------------
+elif st.session_state["nav"] == "Interactive Portfolio Selector":
+    st.title("🎚️ Interactive Portfolio Selector")
 
-    # Frontier table
-    with st.expander("📋 View Full Frontier Data"):
-        view_df = opt_df[["gamma", "return", "SCR_market", "solvency", "objective"]].copy()
-        view_df["return"] = view_df["return"] * 100
-        view_df["solvency"] = view_df["solvency"] * 100
+
+    st.markdown("---")
+    st.markdown("Explore different risk-return tradeoffs along the efficient frontier by selecting alternative portfolios.")
+
+    # Check if optimization has been run
+    if "opt_df" not in st.session_state or st.session_state["opt_df"].empty:
+        st.warning("⚠️ No optimization results available. Please run the optimization from the **Inputs** page first.")
+        st.stop()
+
+    # Load data from session
+    opt_df = st.session_state["opt_df"]
+    initial_asset = st.session_state["initial_asset"]
+    liab_value = st.session_state["liab_value"]
+    liab_duration = st.session_state.get("liab_duration", 6.6)
+
+    # Find optimal portfolio
+    best_idx = opt_df["objective"].idxmax()
+    best = opt_df.loc[best_idx]
+
+    # Current portfolio metrics
+    current_ret = float((initial_asset["asset_ret"] * initial_asset["asset_weight"]).sum())
+    current_SCR = float(best["SCR_market"])
+    current_sol = (initial_asset['asset_val'].sum() - liab_value) / current_SCR
+
+    st.markdown("---")
+
+    # ==========================================
+    # INTERACTIVE FRONTIER CHART
+    # ==========================================
+    st.subheader("📈 Interactive Efficient Frontier")
+
+    # Initialize selected index (default to optimal)
+    if "selected_frontier_idx" not in st.session_state:
+        st.session_state["selected_frontier_idx"] = best_idx
+
+    # Slider for selecting frontier point
+    st.markdown("**Use the slider below to explore different portfolios along the efficient frontier:**")
+    st.info("""
+        💡 **Why does the slider sometimes feel jumpy?**
+
+        Due to regulatory constraints and investment policy limits, many portfolios on the frontier 
+        have similar allocations. This is normal for Solvency II-compliant portfolios where the 
+        feasible investment space is intentionally restricted for safety.
+
+        Even small differences in allocation can produce meaningful differences in return and solvency.
+        """)
+
+    selected_idx = st.slider(
+        "Select Portfolio Point",
+        min_value=0,
+        max_value=len(opt_df) - 1,
+        value=int(st.session_state["selected_frontier_idx"]),
+        format="Point %d / " + str(len(opt_df) - 1),
+        help="Slide to explore different risk-return profiles. Point 0 = most aggressive (highest return), Point N = most conservative (highest solvency)",
+        key="frontier_slider"
+    )
+
+    # Update session state
+    st.session_state["selected_frontier_idx"] = selected_idx
+
+    # Get selected portfolio
+    selected_portfolio = opt_df.iloc[selected_idx]
+
+    # Create interactive frontier chart
+    fig_interactive, ax_interactive = plt.subplots(figsize=(12, 7))
+
+    # Styling
+    ax_interactive.set_facecolor('#f8f9fa')
+    fig_interactive.patch.set_facecolor('white')
+
+    # Plot frontier line
+    ax_interactive.plot(
+        opt_df["solvency"] * 100,
+        opt_df["return"] * 100,
+        '-',
+        color='#4ECDC4',
+        linewidth=2.5,
+        alpha=0.4,
+        zorder=1
+    )
+
+    # Plot all frontier points (small dots)
+    ax_interactive.scatter(
+        opt_df["solvency"] * 100,
+        opt_df["return"] * 100,
+        s=60,
+        color='#4ECDC4',
+        alpha=0.4,
+        edgecolors='white',
+        linewidth=1,
+        zorder=2
+    )
+
+    # Plot CURRENT portfolio (red diamond)
+    ax_interactive.scatter(
+        current_sol * 100,
+        current_ret * 100,
+        s=350,
+        c='#E74C3C',
+        marker='D',
+        edgecolors='#C0392B',
+        linewidth=2.5,
+        label='Current Portfolio',
+        zorder=4,
+        alpha=0.9
+    )
+
+    # Plot OPTIMAL portfolio (gold star)
+    optimal_solvency = best["solvency"] * 100
+    optimal_return = best["return"] * 100
+
+    ax_interactive.scatter(
+        optimal_solvency,
+        optimal_return,
+        s=600,
+        c='#FFD700',
+        marker='*',
+        edgecolors='#FF8C00',
+        linewidth=3,
+        label='Optimal Portfolio',
+        zorder=5
+    )
+
+    # Plot SELECTED portfolio (purple circle) - THE MOVING ONE
+    selected_solvency = selected_portfolio["solvency"] * 100
+    selected_return = selected_portfolio["return"] * 100
+
+    # Outer glow for selected
+    ax_interactive.scatter(
+        selected_solvency,
+        selected_return,
+        s=800,
+        c='#9B59B6',
+        marker='o',
+        alpha=0.2,
+        edgecolors='none',
+        zorder=6
+    )
+
+    # Main selected point
+    ax_interactive.scatter(
+        selected_solvency,
+        selected_return,
+        s=500,
+        c='#9B59B6',
+        marker='o',
+        edgecolors='#6C3483',
+        linewidth=3,
+        label='Selected Portfolio',
+        zorder=7,
+        alpha=0.9
+    )
+
+    # Annotation for selected point
+    ax_interactive.annotate(
+        f'SELECTED\n{selected_return:.2f}% | {selected_solvency:.1f}%',
+        xy=(selected_solvency, selected_return),
+        xytext=(25, 25),
+        textcoords='offset points',
+        fontsize=10,
+        fontweight='bold',
+        bbox=dict(
+            boxstyle='round,pad=0.8',
+            facecolor='#9B59B6',
+            edgecolor='#6C3483',
+            linewidth=2.5,
+            alpha=0.9
+        ),
+        arrowprops=dict(
+            arrowstyle='->',
+            connectionstyle='arc3,rad=0.3',
+            color='#6C3483',
+            lw=2.5
+        ),
+        color='white',
+        zorder=8
+    )
+
+    # Add 100% solvency line
+    ax_interactive.axvline(
+        x=100,
+        color='#95a5a6',
+        linestyle='--',
+        linewidth=2.5,
+        alpha=0.6,
+        label='100% Solvency',
+        zorder=0
+    )
+
+    # Styling
+    ax_interactive.set_xlabel('Solvency Ratio (%)', fontsize=12, fontweight='bold', color='#2c3e50')
+    ax_interactive.set_ylabel('Expected Return (%)', fontsize=12, fontweight='bold', color='#2c3e50')
+    ax_interactive.set_title('Interactive Efficient Frontier', fontsize=15, fontweight='bold', pad=20, color='#2c3e50')
+    ax_interactive.grid(True, alpha=0.25, linestyle='--', linewidth=1, color='gray')
+
+    # Legend
+    legend = ax_interactive.legend(
+        loc='upper right',
+        fontsize=10,
+        frameon=True,
+        shadow=True,
+        fancybox=True,
+        framealpha=0.95,
+        edgecolor='gray',
+        ncol=1,
+        borderpad=1.2,
+        labelspacing=1.0,
+        handlelength=2.5,
+        handleheight=1.5,
+        markerscale=0.7,
+        handletextpad=1.0,
+        borderaxespad=0.8
+    )
+    legend.get_frame().set_linewidth(1.5)
+
+    # Remove spines
+    ax_interactive.spines['top'].set_visible(False)
+    ax_interactive.spines['right'].set_visible(False)
+    ax_interactive.spines['left'].set_linewidth(1.5)
+    ax_interactive.spines['bottom'].set_linewidth(1.5)
+
+    # Axis limits - IMPROVED FOCUS
+    x_min, x_max = opt_df["solvency"].min() * 100, opt_df["solvency"].max() * 100
+    y_min, y_max = opt_df["return"].min() * 100, opt_df["return"].max() * 100
+
+    # Option 1: Show the full range (will show all 150 points clearly)
+    x_padding = (x_max - x_min) * 0.05  # ✅ Reduced padding
+    y_padding = (y_max - y_min) * 0.10  # ✅ Reduced padding
+
+    ax_interactive.set_xlim(x_min - x_padding, x_max + x_padding)
+    ax_interactive.set_ylim(y_min - y_padding, y_max + y_padding)
+
+    plt.tight_layout()
+    st.pyplot(fig_interactive, use_container_width=True)
+
+    st.markdown("---")
+
+    # ==========================================
+    # METRICS DASHBOARD
+    # ==========================================
+    st.subheader("📊 Selected Portfolio Metrics")
+
+    col_met1, col_met2, col_met3, col_met4 = st.columns(4)
+
+    with col_met1:
+        st.metric(
+            "Expected Return",
+            f"{selected_portfolio['return'] * 100:.2f}%",
+            delta=f"{(selected_portfolio['return'] - best['return']) * 100:+.2f}pp vs Optimal",
+            help="Annual expected return of selected portfolio"
+        )
+
+    with col_met2:
+        st.metric(
+            "Solvency Ratio",
+            f"{selected_portfolio['solvency'] * 100:.1f}%",
+            delta=f"{(selected_portfolio['solvency'] - best['solvency']) * 100:+.1f}pp vs Optimal",
+            help="BOF / SCR Market ratio"
+        )
+
+    with col_met3:
+        st.metric(
+            "SCR Market",
+            f"€{selected_portfolio['SCR_market']:.1f}m",
+            delta=f"€{(selected_portfolio['SCR_market'] - best['SCR_market']):+.1f}m vs Optimal",
+            delta_color="inverse",
+            help="Market risk capital requirement"
+        )
+
+    with col_met4:
+        st.metric(
+            "Risk Aversion (γ)",
+            f"{selected_portfolio['gamma']:.4f}",
+            help="Higher γ = more conservative (prioritizes solvency)"
+        )
+
+    # Additional metrics row
+    col_met5, col_met6, col_met7, col_met8 = st.columns(4)
+
+    with col_met5:
+        st.metric(
+            "Basic Own Funds",
+            f"€{selected_portfolio['BOF']:.1f}m",
+            help="Assets - Liabilities"
+        )
+
+    with col_met6:
+        selected_dur = np.average(
+            initial_asset["asset_dur"].values,
+            weights=selected_portfolio["w_opt"]
+        )
+        st.metric(
+            "Portfolio Duration",
+            f"{selected_dur:.2f} years",
+            delta=f"{(selected_dur - liab_duration):+.2f}y gap",
+            delta_color="inverse",
+            help="Modified duration of selected portfolio"
+        )
+
+    with col_met7:
+        st.metric(
+            "Objective Value",
+            f"{selected_portfolio['objective']:.4f}",
+            delta=f"{(selected_portfolio['objective'] - best['objective']):+.4f} vs Optimal",
+            help="Optimization objective (higher = better balance)"
+        )
+
+    with col_met8:
+        # Position indicator
+        position_pct = (selected_idx / (len(opt_df) - 1)) * 100
+        if position_pct < 33:
+            position_label = "Aggressive"
+            position_color = "🔴"
+        elif position_pct < 67:
+            position_label = "Balanced"
+            position_color = "🟡"
+        else:
+            position_label = "Conservative"
+            position_color = "🟢"
+
+        st.metric(
+            "Profile",
+            f"{position_color} {position_label}",
+            help="Portfolio risk profile based on frontier position"
+        )
+
+    st.markdown("---")
+
+    # ==========================================
+    # ALLOCATION DISPLAY
+    # ==========================================
+    st.subheader("💼 Selected Portfolio Allocation")
+
+    col_alloc_left, col_alloc_right = st.columns([1.2, 1])
+
+    with col_alloc_left:
+        st.markdown("**Detailed Allocation**")
+
+        asset_labels = ["Government Bonds", "Corporate Bonds", "Equity Type 1",
+                        "Equity Type 2", "Property", "Treasury Bills"]
+
+        allocation_detail = pd.DataFrame({
+            "Asset Class": asset_labels,
+            "Weight (%)": selected_portfolio["w_opt"] * 100,
+            "Amount (€m)": selected_portfolio["A_opt"],
+            "Return (%)": initial_asset["asset_ret"].values * 100,
+            "Duration (y)": initial_asset["asset_dur"].values
+        })
 
         st.dataframe(
-            view_df.style.format({
-                "gamma": "{:.4f}",
-                "return": "{:.2f}%",
-                "SCR_market": "€{:.1f}m",
-                "solvency": "{:.1f}%",
-                "objective": "{:.4f}"
-            }),
+            allocation_detail.style.format({
+                "Weight (%)": "{:.1f}",
+                "Amount (€m)": "{:.1f}",
+                "Return (%)": "{:.2f}",
+                "Duration (y)": "{:.2f}"
+            }).background_gradient(subset=["Weight (%)"], cmap="Blues", vmin=0, vmax=100),
+            use_container_width=True,
+            hide_index=True
+        )
+
+    with col_alloc_right:
+        st.markdown("**Visual Allocation**")
+
+        # Pie chart for selected allocation
+        fig_selected_pie, ax_selected_pie = plt.subplots(figsize=(7, 7))
+
+        colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DFE6E9']
+
+        wedges, texts, autotexts = ax_selected_pie.pie(
+            selected_portfolio["w_opt"] * 100,
+            labels=["Gov", "Corp", "Eq1", "Eq2", "Prop", "TB"],
+            colors=colors,
+            autopct=lambda pct: f'{pct:.1f}%' if pct > 3 else '',
+            startangle=90,
+            textprops={'fontsize': 10, 'weight': 'bold'},
+            pctdistance=0.80,
+            explode=[0.03 if w > 10 else 0 for w in selected_portfolio["w_opt"] * 100],
+            shadow=True,
+            wedgeprops={'edgecolor': 'white', 'linewidth': 2}
+        )
+
+        for autotext in autotexts:
+            autotext.set_color('white')
+            autotext.set_fontsize(10)
+            autotext.set_fontweight('bold')
+
+        ax_selected_pie.set_title('Selected Portfolio', fontsize=12, fontweight='bold', pad=15)
+
+        plt.tight_layout()
+        st.pyplot(fig_selected_pie, use_container_width=True)
+
+    st.markdown("---")
+
+    # ==========================================
+    # COMPARISON SECTION
+    # ==========================================
+    st.subheader("📊 Comparison Analysis")
+
+    # Tabs for different comparisons
+    comp_tab1, comp_tab2 = st.tabs(["📈 vs Optimal Portfolio", "📉 vs Current Portfolio"])
+
+    with comp_tab1:
+        st.markdown("**Selected vs Optimal Portfolio**")
+
+        comparison_optimal = pd.DataFrame({
+            "Metric": [
+                "Expected Return (%)",
+                "Solvency Ratio (%)",
+                "SCR Market (€m)",
+                "Basic Own Funds (€m)",
+                "Portfolio Duration (years)",
+                "Objective Value"
+            ],
+            "Selected": [
+                f"{selected_portfolio['return'] * 100:.2f}",
+                f"{selected_portfolio['solvency'] * 100:.1f}",
+                f"{selected_portfolio['SCR_market']:.1f}",
+                f"{selected_portfolio['BOF']:.1f}",
+                f"{selected_dur:.2f}",
+                f"{selected_portfolio['objective']:.4f}"
+            ],
+            "Optimal": [
+                f"{best['return'] * 100:.2f}",
+                f"{best['solvency'] * 100:.1f}",
+                f"{best['SCR_market']:.1f}",
+                f"{best['BOF']:.1f}",
+                f"{np.average(initial_asset['asset_dur'].values, weights=best['w_opt']):.2f}",
+                f"{best['objective']:.4f}"
+            ],
+            "Difference": [
+                f"{(selected_portfolio['return'] - best['return']) * 100:+.2f}pp",
+                f"{(selected_portfolio['solvency'] - best['solvency']) * 100:+.1f}pp",
+                f"{(selected_portfolio['SCR_market'] - best['SCR_market']):+.1f}",
+                f"{(selected_portfolio['BOF'] - best['BOF']):+.1f}",
+                f"{(selected_dur - np.average(initial_asset['asset_dur'].values, weights=best['w_opt'])):+.2f}",
+                f"{(selected_portfolio['objective'] - best['objective']):+.4f}"
+            ]
+        })
+
+        st.dataframe(comparison_optimal, use_container_width=True, hide_index=True)
+
+        # Allocation comparison
+        st.markdown("**Allocation Differences**")
+
+        alloc_comp_optimal = pd.DataFrame({
+            "Asset Class": asset_labels,
+            "Selected (%)": selected_portfolio["w_opt"] * 100,
+            "Optimal (%)": best["w_opt"] * 100,
+            "Difference (pp)": (selected_portfolio["w_opt"] - best["w_opt"]) * 100
+        })
+
+        st.dataframe(
+            alloc_comp_optimal.style.format({
+                "Selected (%)": "{:.1f}",
+                "Optimal (%)": "{:.1f}",
+                "Difference (pp)": "{:+.1f}"
+            }).background_gradient(subset=["Difference (pp)"], cmap="RdYlGn", vmin=-20, vmax=20),
+            use_container_width=True,
+            hide_index=True
+        )
+
+    with comp_tab2:
+        st.markdown("**Selected vs Current Portfolio**")
+
+        comparison_current = pd.DataFrame({
+            "Metric": [
+                "Expected Return (%)",
+                "Solvency Ratio (%)",
+                "SCR Market (€m)",
+                "Portfolio Duration (years)"
+            ],
+            "Selected": [
+                f"{selected_portfolio['return'] * 100:.2f}",
+                f"{selected_portfolio['solvency'] * 100:.1f}",
+                f"{selected_portfolio['SCR_market']:.1f}",
+                f"{selected_dur:.2f}"
+            ],
+            "Current": [
+                f"{current_ret * 100:.2f}",
+                f"{current_sol * 100:.1f}",
+                f"{current_SCR:.1f}",
+                f"{np.average(initial_asset['asset_dur'].values, weights=initial_asset['asset_weight'].values):.2f}"
+            ],
+            "Difference": [
+                f"{(selected_portfolio['return'] - current_ret) * 100:+.2f}pp",
+                f"{(selected_portfolio['solvency'] - current_sol) * 100:+.1f}pp",
+                f"{(selected_portfolio['SCR_market'] - current_SCR):+.1f}",
+                f"{(selected_dur - np.average(initial_asset['asset_dur'].values, weights=initial_asset['asset_weight'].values)):+.2f}"
+            ]
+        })
+
+        st.dataframe(comparison_current, use_container_width=True, hide_index=True)
+
+        # Allocation comparison
+        st.markdown("**Allocation Differences**")
+
+        alloc_comp_current = pd.DataFrame({
+            "Asset Class": asset_labels,
+            "Selected (%)": selected_portfolio["w_opt"] * 100,
+            "Current (%)": initial_asset["asset_weight"].values * 100,
+            "Difference (pp)": (selected_portfolio["w_opt"] - initial_asset["asset_weight"].values) * 100
+        })
+
+        st.dataframe(
+            alloc_comp_current.style.format({
+                "Selected (%)": "{:.1f}",
+                "Current (%)": "{:.1f}",
+                "Difference (pp)": "{:+.1f}"
+            }).background_gradient(subset=["Difference (pp)"], cmap="RdYlGn", vmin=-30, vmax=30),
+            use_container_width=True,
+            hide_index=True
+        )
+
+    st.markdown("---")
+
+    # ==========================================
+    # EXPORT SELECTED PORTFOLIO
+    # ==========================================
+    st.subheader("💾 Export Selected Portfolio")
+
+    col_exp1, col_exp2, col_exp3 = st.columns(3)
+
+    with col_exp1:
+        st.markdown("**📊 Allocation CSV**")
+
+        export_selected_alloc = pd.DataFrame({
+            "Asset Class": asset_labels,
+            "Weight (%)": selected_portfolio["w_opt"] * 100,
+            "Amount (€m)": selected_portfolio["A_opt"],
+            "Expected Return (%)": initial_asset["asset_ret"].values * 100,
+            "Duration (years)": initial_asset["asset_dur"].values
+        })
+
+        csv_selected = export_selected_alloc.to_csv(index=False)
+        st.download_button(
+            label="📥 Download Allocation",
+            data=csv_selected,
+            file_name=f"selected_portfolio_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+            mime="text/csv",
             use_container_width=True
         )
+
+    with col_exp2:
+        st.markdown("**📄 Summary Report**")
+
+        selected_report = f"""SELECTED PORTFOLIO REPORT
+    {'=' * 60}
+    Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+    Frontier Point: {selected_idx} of {len(opt_df) - 1}
+    
+    {'=' * 60}
+    PORTFOLIO METRICS
+    {'=' * 60}
+    Expected Return:         {selected_portfolio['return']:>12.2%}
+    Solvency Ratio:          {selected_portfolio['solvency'] * 100:>12.1f}%
+    SCR Market:              €{selected_portfolio['SCR_market']:>12.1f}m
+    Basic Own Funds:         €{selected_portfolio['BOF']:>12.1f}m
+    Portfolio Duration:      {selected_dur:>12.2f} years
+    Objective Value:         {selected_portfolio['objective']:>12.4f}
+    Risk Aversion (gamma):   {selected_portfolio['gamma']:>12.4f}
+    
+    {'=' * 60}
+    ALLOCATION
+    {'=' * 60}
+    Asset Class              Weight (%)    Amount (€m)
+    {'-' * 60}
+    """
+        for i, asset in enumerate(asset_labels):
+            selected_report += f"{asset:<24} {selected_portfolio['w_opt'][i] * 100:>9.1f}    {selected_portfolio['A_opt'][i]:>10.1f}\n"
+
+        selected_report += f"""
+    {'=' * 60}
+    COMPARISON VS OPTIMAL
+    {'=' * 60}
+    Return Difference:       {(selected_portfolio['return'] - best['return']) * 100:>12.2f}pp
+    Solvency Difference:     {(selected_portfolio['solvency'] - best['solvency']) * 100:>12.1f}pp
+    SCR Difference:          €{(selected_portfolio['SCR_market'] - best['SCR_market']):>12.1f}m
+    
+    {'=' * 60}
+    End of Report
+    {'=' * 60}
+    """
+
+        st.download_button(
+            label="📥 Download Report",
+            data=selected_report,
+            file_name=f"selected_portfolio_report_{datetime.now().strftime('%Y%m%d_%H%M')}.txt",
+            mime="text/plain",
+            use_container_width=True
+        )
+
+    with col_exp3:
+        st.markdown("**📦 JSON Export**")
+
+        selected_json = {
+            "metadata": {
+                "generated": datetime.now().isoformat(),
+                "frontier_point": int(selected_idx),
+                "total_points": len(opt_df)
+            },
+            "metrics": {
+                "return": float(selected_portfolio['return']),
+                "solvency_ratio": float(selected_portfolio['solvency']),
+                "SCR_market": float(selected_portfolio['SCR_market']),
+                "BOF": float(selected_portfolio['BOF']),
+                "duration": float(selected_dur),
+                "objective": float(selected_portfolio['objective']),
+                "gamma": float(selected_portfolio['gamma'])
+            },
+            "allocation": {
+                "Government_Bonds": {
+                    "weight": float(selected_portfolio["w_opt"][0]),
+                    "amount": float(selected_portfolio["A_opt"][0])
+                },
+                "Corporate_Bonds": {
+                    "weight": float(selected_portfolio["w_opt"][1]),
+                    "amount": float(selected_portfolio["A_opt"][1])
+                },
+                "Equity_Type_1": {
+                    "weight": float(selected_portfolio["w_opt"][2]),
+                    "amount": float(selected_portfolio["A_opt"][2])
+                },
+                "Equity_Type_2": {
+                    "weight": float(selected_portfolio["w_opt"][3]),
+                    "amount": float(selected_portfolio["A_opt"][3])
+                },
+                "Property": {
+                    "weight": float(selected_portfolio["w_opt"][4]),
+                    "amount": float(selected_portfolio["A_opt"][4])
+                },
+                "Treasury_Bills": {
+                    "weight": float(selected_portfolio["w_opt"][5]),
+                    "amount": float(selected_portfolio["A_opt"][5])
+                }
+            }
+        }
+
+        json_selected = json.dumps(selected_json, indent=2)
+        st.download_button(
+            label="📥 Download JSON",
+            data=json_selected,
+            file_name=f"selected_portfolio_{datetime.now().strftime('%Y%m%d_%H%M')}.json",
+            mime="application/json",
+            use_container_width=True
+        )
+
+    st.markdown("---")
+
+    # Help section
+    with st.expander("ℹ️ How to Use This Page"):
+        st.markdown("""
+            ### Interactive Portfolio Selector Guide
+    
+            **Purpose**: Explore alternative portfolios along the efficient frontier and compare them to the optimal solution.
+    
+            **How It Works**:
+            1. **Use the slider** to select different points on the efficient frontier
+            2. **Watch the chart update** - the purple circle shows your selected portfolio
+            3. **Review metrics** - compare selected portfolio to optimal and current
+            4. **Download results** - export any portfolio you want to analyze further
+    
+            **Understanding Risk Profiles**:
+            - 🔴 **Aggressive** (Low points): Higher returns, lower solvency
+            - 🟡 **Balanced** (Middle points): Trade-off between return and safety
+            - 🟢 **Conservative** (High points): Lower returns, higher solvency
+    
+            **Why Explore?**:
+            - The "optimal" portfolio maximizes a specific objective function
+            - Your organization may have different priorities (e.g., minimum solvency requirement)
+            - This tool lets you find portfolios that meet YOUR specific constraints
+    
+            **Tips**:
+            - Gold star (⭐) = Mathematically optimal portfolio
+            - Purple circle (🟣) = Your currently selected portfolio
+            - Red diamond (♦️) = Your current portfolio for reference
+            """)
