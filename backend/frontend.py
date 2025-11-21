@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 import json
 import openpyxl
 from io import BytesIO
+from backend.solvency_calc import marginal_scr, allocate_marginal_scr
 
 # --- Make project root importable ---
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))
