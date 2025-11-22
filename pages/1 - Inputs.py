@@ -5,6 +5,7 @@ import pandas as pd
 import yfinance as yf
 from datetime import datetime, timedelta
 
+
 # --- Path Setup ---
 current_dir = os.path.dirname(os.path.abspath(__file__))
 root_dir = os.path.dirname(current_dir)
@@ -14,6 +15,7 @@ if root_dir not in sys.path:
 # --- Backend Imports ---
 from backend.config_loader import load_config, get_corr_matrices, get_solvency_params
 from backend.optimization import solve_frontier_combined
+from backend.data_handler import get_interpolated_ecb_yield
 from backend.data_calculator import (
     compute_expected_returns_from_etfs,
     compute_ir_shocks_duration_approx,
@@ -384,17 +386,31 @@ if st.button("🚀 Optimize Portfolio", disabled=not can_optimize, type="primary
                 r_prop = auto_returns.get('property', 0.056)
                 r_tb = auto_returns.get('t_bills', 0.006)
 
-                # Gov Bonds: If negative, assume Mean Reversion to Risk Free Rate
-                if auto_returns.get('gov_bond', -1) < 0:
-                    r_gov = risk_free_rate
-                    st.warning(
-                        f"⚠️ Historical Gov Bond return was negative. Defaulting to Risk Free Rate ({r_gov:.1%}).")
-                else:
-                    r_gov = auto_returns['gov_bond']
+                try:
+                    live_rfr = get_interpolated_ecb_yield(10.0, verbose=False)
+                    st.success(f"✓ Fetched live ECB Risk Free Rate (10Y): {live_rfr:.2%}")
+                except:
+                    live_rfr = risk_free_rate  # Fallback to user input
+                    st.warning("⚠️ Could not reach ECB API. Using manual assumption.")
+
+                    # 2. Calculate Returns using this live rate
+                    # Gov Bonds: Use exact duration from input (dur_gov)
+                try:
+                    r_gov_live = get_interpolated_ecb_yield(dur_gov, verbose=False)
+                    r_gov = r_gov_live
+                except:
+                    r_gov = live_rfr  # Fallback
+
+                    # T-Bills: Use exact duration from input (dur_tb)
+                try:
+                    r_tb = get_interpolated_ecb_yield(dur_tb, verbose=False)
+                except:
+                    r_tb = live_rfr  # Fallback
+
 
                 # Corp Bonds: Risk Free Rate + Credit Spread (approx 1.5%)
                 if auto_returns.get('corp_bond', -1) < 0:
-                    r_corp = risk_free_rate + 0.015
+                    r_corp = live_rfr + 0.015
                     st.warning(
                         f"⚠️ Historical Corp Bond return was negative. Using Proxy (Rate + 1.5% = {r_corp:.1%}).")
                 else:
@@ -419,8 +435,10 @@ if st.button("🚀 Optimize Portfolio", disabled=not can_optimize, type="primary
                 else:
                     r_eq2 = val_eq2
 
-                # T-Bills: Simply use the Risk Free Rate
-                r_tb = risk_free_rate
+                try:
+                    r_tb = get_interpolated_ecb_yield(dur_tb, verbose=False)
+                except:
+                    r_tb = live_rfr  # Fallback to the 10Y rate or user input if short rate fails
 
                 st.success(
                     f"✓ Returns: Gov={r_gov:.1%}, Corp={r_corp:.1%}, Eq1={r_eq1:.1%}, Eq2={r_eq2:.1%}, Prop={r_prop:.1%}, TB={r_tb:.1%}")
