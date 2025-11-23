@@ -30,7 +30,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for professional, consulting-style appearance with light background
+# Custom CSS for professional, consulting-style appearance that respects Dark/Light mode
 st.markdown("""
     <style>
     /* Global font styling */
@@ -40,27 +40,22 @@ st.markdown("""
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
-    /* Force light background */
-    .main {
-        background-color: #ffffff;
-    }
-
-    .stApp {
-        background-color: #f8fafc;
-    }
+    /* REMOVED: Force light background sections (.main, .stApp) */
+    /* Streamlit will now handle background colors automatically */
 
     /* Main title styling */
     .main-title {
         font-size: 3rem;
         font-weight: 700;
-        color: #1e293b;
+        /* Color removed to inherit from theme */
         margin-bottom: 0.5rem;
         letter-spacing: -0.02em;
     }
 
     .subtitle {
         font-size: 1.4rem;
-        color: #475569;
+        /* Use a semi-transparent version of the text color for theme adaptability */
+        opacity: 0.8; 
         margin-bottom: 1.5rem;
         font-weight: 400;
         line-height: 1.6;
@@ -68,15 +63,16 @@ st.markdown("""
 
     .intro-text {
         font-size: 1.05rem;
-        color: #1e293b;
         line-height: 1.8;
         margin-bottom: 2.5rem;
         max-width: 95%;
     }
 
-    /* Navigation box styling - cleaner, no border */
+    /* Navigation box styling */
     .nav-box {
-        background-color: #f8fafc;
+        /* Use a slightly transparent background to work on both dark and light */
+        background-color: rgba(128, 128, 128, 0.05); 
+        border: 1px solid rgba(128, 128, 128, 0.1);
         border-radius: 8px;
         padding: 1.5rem;
         margin-bottom: 1rem;
@@ -85,7 +81,6 @@ st.markdown("""
     .nav-title {
         font-size: 1.25rem;
         font-weight: 600;
-        color: #0f172a;
         margin-bottom: 0.75rem;
     }
 
@@ -95,19 +90,14 @@ st.markdown("""
         line-height: 1.8;
     }
 
-    .nav-box li {
-        color: #334155;
-        margin-bottom: 0.5rem;
-    }
-
     /* Section headers */
     .section-header {
         font-size: 2rem;
         font-weight: 600;
-        color: #0f172a;
         margin-top: 3rem;
         margin-bottom: 1.5rem;
-        border-bottom: 3px solid #cbd5e1;
+        /* Use current text color with transparency for border */
+        border-bottom: 3px solid rgba(128, 128, 128, 0.2);
         padding-bottom: 0.75rem;
         letter-spacing: -0.01em;
     }
@@ -116,7 +106,7 @@ st.markdown("""
     .team-category {
         font-size: 1.4rem;
         font-weight: 700;
-        color: #1e40af;
+        color: #4da6ff; /* A brighter blue that works on dark mode too */
         margin-top: 2rem;
         margin-bottom: 1.2rem;
         letter-spacing: -0.01em;
@@ -129,122 +119,61 @@ st.markdown("""
     .profile-name {
         font-weight: 500;
         font-size: 1.05rem;
-        color: #334155;
         margin-bottom: 0.2rem;
     }
 
     .profile-role {
-        color: #64748b;
+        opacity: 0.7;
         font-size: 0.9rem;
         font-style: italic;
     }
 
     /* Key metrics styling */
     .metric-box {
-        background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+        background: rgba(128, 128, 128, 0.05);
         border-radius: 8px;
         padding: 1.25rem;
         text-align: center;
-        border: 1px solid #cbd5e1;
+        border: 1px solid rgba(128, 128, 128, 0.1);
     }
 
     .metric-value {
         font-size: 2rem;
         font-weight: 700;
-        color: #1e40af;
+        color: #4da6ff; /* Brighter blue */
         margin-bottom: 0.25rem;
     }
 
     .metric-label {
         font-size: 0.9rem;
-        color: #475569;
+        opacity: 0.8;
         font-weight: 500;
         text-transform: uppercase;
         letter-spacing: 0.05em;
     }
 
-    /* Tab content styling */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
-    }
-
-    .stTabs [data-baseweb="tab"] {
-        padding: 0.75rem 1.5rem;
-        font-weight: 500;
-        color: #475569;
-    }
-
-    .stTabs [data-baseweb="tab"]:hover {
-        color: #1e293b;
-    }
-
-    /* Numbered list styling */
-    ol {
-        line-height: 1.9;
-        color: #1e293b;
-    }
-
-    ol li {
-        margin-bottom: 0.75rem;
-    }
-
-    ol li strong {
-        color: #0f172a;
-    }
-
-    /* Table styling */
-    table {
-        color: #1e293b;
-    }
-
-    thead tr th {
-        background-color: #f1f5f9 !important;
-        color: #0f172a !important;
-        font-weight: 600 !important;
-    }
-
-    tbody tr td {
-        color: #334155 !important;
-    }
-
-    /* Footer styling */
-    .footer {
-        margin-top: 4rem;
-        padding-top: 2rem;
-        border-top: 2px solid #cbd5e1;
-        text-align: center;
-        color: #64748b;
-        font-size: 0.9rem;
-    }
-
-    /* Info box */
+    /* Info box - Needs specific colors to work on dark mode */
     .info-box {
-        background-color: #dbeafe;
+        background-color: rgba(37, 99, 235, 0.1); /* Transparent blue */
         border-left: 4px solid #2563eb;
         padding: 1rem 1.25rem;
         border-radius: 6px;
         margin: 1.5rem 0;
     }
 
-    .info-box p {
-        color: #1e40af;
-        margin: 0;
-        line-height: 1.6;
+    /* Heading colors override removal to respect theme */
+    h1, h2, h3, h4, h5, h6, p, span, div {
+        color: inherit !important;
     }
 
-    /* Markdown text color fixes */
-    p, span, div {
-        color: #1e293b;
-    }
-
-    /* Ensure all text is readable */
-    .stMarkdown {
-        color: #1e293b;
-    }
-
-    /* Heading colors */
-    h1, h2, h3, h4, h5, h6 {
-        color: #0f172a !important;
+    /* Footer styling */
+    .footer {
+        margin-top: 4rem;
+        padding-top: 2rem;
+        border-top: 2px solid rgba(128, 128, 128, 0.2);
+        text-align: center;
+        opacity: 0.6;
+        font-size: 0.9rem;
     }
     </style>
 """, unsafe_allow_html=True)
