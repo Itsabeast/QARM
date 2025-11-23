@@ -1,5 +1,11 @@
 import streamlit as st
 from backend.style_utils import apply_sidebar_style
+st.set_page_config(
+    page_title="Solvency II Portfolio Optimiser",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 apply_sidebar_style()
 import os
 import sys
@@ -19,14 +25,6 @@ for key in keys_to_init:
 
 if "optimization_run" not in st.session_state:
     st.session_state["optimization_run"] = False
-
-# Page configuration
-st.set_page_config(
-    page_title="Solvency II Portfolio Optimiser",
-    page_icon="📊",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
 
 st.markdown("""
     <style>
