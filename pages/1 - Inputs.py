@@ -1,5 +1,6 @@
 import streamlit as st
 from backend.style_utils import apply_sidebar_style
+st.set_page_config(page_title="Results", layout="wide")
 apply_sidebar_style()
 import os, sys
 import numpy as np
@@ -26,9 +27,6 @@ from backend.data_calculator import (
     compute_spread_shock_eiopa
 )
 
-st.set_page_config(page_title="Inputs - Solvency II Optimizer", layout="wide")
-
-apply_sidebar_style()
 
 # --------------------------
 # Helper Functions
