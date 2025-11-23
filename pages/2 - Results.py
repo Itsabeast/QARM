@@ -24,6 +24,8 @@ from backend.data_calculator import (
     compute_ir_shocks_from_eiopa,
     compute_spread_shock_eiopa)
 
+st.set_page_config(page_title="Results", layout="wide")
+
 st.markdown("""
     <style>
     /* --- SIDEBAR STYLING --- */
