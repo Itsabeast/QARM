@@ -8,7 +8,6 @@ import json
 import os
 import sys
 
-)
 
 # --- Path Setup ---
 current_dir = os.path.dirname(os.path.abspath(__file__))
