@@ -175,6 +175,55 @@ st.markdown("""
         opacity: 0.6;
         font-size: 0.9rem;
     }
+    /* --- SIDEBAR STYLING --- */
+
+    /* 1. Sidebar Background & Width (Optional tweak) */
+    [data-testid="stSidebar"] {
+        background-color: #f8fafc; /* Light grey/blue tint */
+        border-right: 1px solid #e2e8f0;
+    }
+
+    /* 2. Navigation Section Padding */
+    [data-testid="stSidebarNav"] {
+        padding-top: 1rem;
+    }
+
+    /* 3. Make Links look like Buttons */
+    [data-testid="stSidebarNav"] a {
+        background-color: transparent;
+        border-radius: 8px;
+        margin-bottom: 8px; /* Spacing between items */
+        padding: 12px 15px; /* Larger clickable area */
+        transition: all 0.2s ease-in-out;
+        border: 1px solid transparent;
+    }
+
+    /* 4. Hover Effect */
+    [data-testid="stSidebarNav"] a:hover {
+        background-color: #eef2ff; /* Light blue hover */
+        border: 1px solid #cbd5e1;
+        transform: translateX(5px); /* Slight movement effect */
+    }
+
+    /* 5. Active Page Highlighting */
+    /* Note: Streamlit handles active state internally, but we can boost the text size */
+    [data-testid="stSidebarNav"] [aria-current="page"] {
+        background-color: #dbeafe; /* Blue highlight for active page */
+        border: 1px solid #3b82f6;
+        font-weight: 700;
+    }
+
+    /* 6. Increase Text Size & Weight */
+    [data-testid="stSidebarNav"] span {
+        font-size: 1.1rem !important; /* Larger text */
+        font-weight: 500;
+        color: #334155;
+    }
+
+    /* 7. Clean up the top spacing if you have a logo */
+    section[data-testid="stSidebar"] > div:first-child {
+        padding-top: 2rem;
+    }
     </style>
 """, unsafe_allow_html=True)
 
