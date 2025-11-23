@@ -26,6 +26,8 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+apply_sidebar_style()
+
 # Custom CSS for professional appearance that adapts to Light/Dark mode automatically
 st.markdown("""
     <style>
@@ -208,7 +210,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-apply_sidebar_style()
+
 # ============================================================================
 # HEADER SECTION
 # ============================================================================
