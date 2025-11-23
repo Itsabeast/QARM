@@ -125,28 +125,63 @@ st.markdown("---")
 # --- 5. Efficient Frontier Plot (High Fidelity) ---
 st.subheader("📉 Efficient Frontier")
 
+# 1. SORTING: Order by Solvency Ratio to ensure the line draws sequentially
+# We sort descending (High Solvency -> Low Solvency) to help the filter logic
+opt_sorted = opt_df.sort_values(by="solvency", ascending=False).copy()
+
+# 2. PARETO FILTER: Keep only the "Upper Envelope"
+# Logic: Scanning from the safest (Right) to riskiest (Left), 
+# we only keep a point if it offers a HIGHER return than everything safer than it.
+# If a risky portfolio has a lower return than a safer one, it's inefficient -> Trash it.
+
+opt_sorted["max_return_seen"] = opt_sorted["return"].cummax()
+# Keep points where the return is the new highest we've seen so far
+pareto_frontier = opt_sorted[opt_sorted["return"] >= opt_sorted["max_return_seen"]]
+
+# Sort back to ascending for proper line plotting (Left to Right)
+pareto_frontier = pareto_frontier.sort_values(by="solvency")
+
 fig_frontier, ax_frontier = plt.subplots(figsize=(12, 7))
 ax_frontier.set_facecolor('#f8f9fa')
 fig_frontier.patch.set_facecolor('white')
 
-# Frontier Line
-ax_frontier.plot(
-    opt_df["solvency"] * 100, opt_df["return"] * 100, '-',
-    color='#4ECDC4', linewidth=2.5, alpha=0.4, label='Efficient Frontier', zorder=1
-)
-colors = ['red' if sol < 1.0 else '#4ECDC4' for sol in opt_df["solvency"]]
+# A. Plot the "Feasible Set" (All points) as faint dots
+# This shows the user the full search space, including the inefficient 'hooks'
 ax_frontier.scatter(
-    opt_df["solvency"] * 100, opt_df["return"] * 100, s=80,
-    color=colors, alpha=0.6, edgecolors='white', linewidth=1.5, zorder=2
+    opt_df["solvency"] * 100, 
+    opt_df["return"] * 100, 
+    s=30, 
+    color='gray', 
+    alpha=0.2, 
+    label='Feasible Portfolios'
 )
 
-# Optimal Point
+# B. Plot the "Efficient Frontier" (Filtered Line)
+# This will now be a smooth curve without zig-zags
+ax_frontier.plot(
+    pareto_frontier["solvency"] * 100, 
+    pareto_frontier["return"] * 100, 
+    '-', 
+    color='#4ECDC4', 
+    linewidth=3, 
+    label='Efficient Frontier',
+    zorder=2
+)
+
+# Optimal Point (Gold Star)
+# We stick to the mathematically optimal point found by the solver
 optimal_solvency = best["solvency"] * 100
 optimal_return = best["return"] * 100
+
 ax_frontier.scatter(
-    optimal_solvency, optimal_return, s=600, c='#FFD700', marker='*',
-    edgecolors='#FF8C00', linewidth=3, label='Optimal Portfolio', zorder=5
+    optimal_solvency, optimal_return, 
+    s=600, c='#FFD700', marker='*',
+    edgecolors='#FF8C00', linewidth=3, 
+    label='Optimal Portfolio', 
+    zorder=5
 )
+
+# Annotation for Optimal
 ax_frontier.annotate(
     f'OPTIMAL\n{optimal_return:.2f}% | {optimal_solvency:.1f}%',
     xy=(optimal_solvency, optimal_return), xytext=(25, 25),
@@ -155,17 +190,13 @@ ax_frontier.annotate(
     arrowprops=dict(arrowstyle='->', color='#FF8C00', lw=2.5), zorder=6
 )
 
-# Current Point
+# Current Point (Red Diamond)
 ax_frontier.scatter(
-    current_sol * 100, current_ret * 100, s=400, c='#E74C3C', marker='D',
-    edgecolors='#C0392B', linewidth=3, label='Current Portfolio', zorder=4, alpha=0.9
-)
-ax_frontier.annotate(
-    f'Current\n{current_ret * 100:.2f}% | {current_sol * 100:.1f}%',
-    xy=(current_sol * 100, current_ret * 100), xytext=(-70, -35),
-    textcoords='offset points', fontsize=9, fontweight='bold',
-    bbox=dict(boxstyle='round,pad=0.6', facecolor='#E74C3C', edgecolor='#C0392B', alpha=0.8),
-    arrowprops=dict(arrowstyle='->', color='#C0392B', lw=2), zorder=6
+    current_sol * 100, current_ret * 100, 
+    s=400, c='#E74C3C', marker='D',
+    edgecolors='#C0392B', linewidth=3, 
+    label='Current Portfolio', 
+    zorder=4, alpha=0.9
 )
 
 # Styling
