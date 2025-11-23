@@ -65,6 +65,23 @@ best_sol = float(best["solvency"])
 best_SCR = float(best["SCR_market"])
 best_BOF = float(best["BOF"])
 
+# === NEW: CRITICAL SOLVENCY CHECK ===
+if best_sol < 1.0:
+    st.error(f"🚨 **CRITICAL WARNING: INSOLVENT PORTFOLIO**")
+    st.warning(f"""
+        **The optimizer could not find a portfolio compliant with Solvency II (100% Ratio).**
+        
+        The displayed portfolio is the **"Least Bad"** option available under your current constraints.
+        
+        - **Best Achievable Ratio:** {best_sol:.1%} (Target: 100%)
+        - **Capital Shortfall:** €{(best['SCR_market'] - best['BOF']):,.1f}m
+        
+        **Recommended Actions:**
+        1. **Inject Capital:** You cannot solve this by asset allocation alone.
+        2. **Relax Constraints:** Allow more allocation to high-return/low-capital assets (if any).
+        3. **Reduce Liabilities:** Revisit liability duration matching or reinsurance.
+    """)
+
 # --- 3. Key Metrics Comparison ---
 st.subheader("📊 Key Metrics Comparison")
 
@@ -117,9 +134,10 @@ ax_frontier.plot(
     opt_df["solvency"] * 100, opt_df["return"] * 100, '-',
     color='#4ECDC4', linewidth=2.5, alpha=0.4, label='Efficient Frontier', zorder=1
 )
+colors = ['red' if sol < 1.0 else '#4ECDC4' for sol in opt_df["solvency"]]
 ax_frontier.scatter(
     opt_df["solvency"] * 100, opt_df["return"] * 100, s=80,
-    color='#4ECDC4', alpha=0.6, edgecolors='white', linewidth=1.5, zorder=2
+    color=colors, alpha=0.6, edgecolors='white', linewidth=1.5, zorder=2
 )
 
 # Optimal Point
