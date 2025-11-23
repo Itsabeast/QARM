@@ -116,31 +116,56 @@ def plot_frontier(opt_df: pd.DataFrame,
 # --------------------------
 # Plotting Helper Function
 # --------------------------
-def plot_scenario_comparison(opt_df, base_best, sens_best, current_ret, current_sol):
-    """Generates a comparison plot showing Base Optimal, Current, and New Scenario Optimal."""
+def plot_scenario_comparison(opt_df, base_best, sens_best, current_ret, current_sol, sens_df=None):
+    """
+    Generates a comparison plot showing Base Optimal, Current, and New Scenario Optimal.
+    Applies Pareto Filtering to ensure smooth curves.
+    """
+    # --- INTERNAL HELPER: PARETO FILTER ---
+    def get_pareto_frontier(df):
+        if df is None or df.empty:
+            return None
+        # 1. Sort by Solvency (High -> Low)
+        sorted_df = df.sort_values(by="solvency", ascending=False).copy()
+        # 2. Filter: Keep points only if they have higher return than any safer point seen so far
+        sorted_df["max_return_seen"] = sorted_df["return"].cummax()
+        clean_df = sorted_df[sorted_df["return"] >= sorted_df["max_return_seen"]]
+        # 3. Sort back (Low -> High) for plotting
+        return clean_df.sort_values(by="solvency")
+    # ---------------------------------------
+
     fig, ax = plt.subplots(figsize=(12, 7))
     ax.set_facecolor('#f8f9fa')
     fig.patch.set_facecolor('white')
+    
+    # 1. Process & Plot BASE Frontier
+    base_curve = get_pareto_frontier(opt_df)
+    if base_curve is not None:
+        ax.plot(base_curve["solvency"] * 100, base_curve["return"] * 100, '-',
+                color='#4ECDC4', linewidth=2.5, alpha=0.4, label='Base Efficient Frontier', zorder=1)
 
-    # 1. Efficient Frontier Line
-    ax.plot(opt_df["solvency"] * 100, opt_df["return"] * 100, '-',
-            color='#4ECDC4', linewidth=2.5, alpha=0.4, label='Base Efficient Frontier', zorder=1)
+    # 2. Process & Plot SCENARIO Frontier (if provided)
+    if sens_df is not None and not sens_df.empty:
+        sens_curve = get_pareto_frontier(sens_df)
+        if sens_curve is not None:
+            ax.plot(sens_curve["solvency"] * 100, sens_curve["return"] * 100, '--',
+                    color='#9B59B6', linewidth=2.0, alpha=0.6, label='Scenario Frontier', zorder=2)
 
-    # 2. Base Optimal Portfolio (Star)
+    # 3. Base Optimal Portfolio (Star)
     ax.scatter(base_best["solvency"] * 100, base_best["return"] * 100, s=400, c='#FFD700', marker='*',
                edgecolors='#FF8C00', linewidth=2, label='Base Optimal Portfolio', zorder=5)
 
-    # 3. Current Portfolio (Diamond)
+    # 4. Current Portfolio (Diamond)
     ax.scatter(current_sol * 100, current_ret * 100, s=250, c='#E74C3C', marker='D',
                edgecolors='#C0392B', linewidth=2, label='Current Portfolio', zorder=4)
 
-    # 4. New Scenario Optimal Portfolio (Triangle - Primary Focus)
+    # 5. New Scenario Optimal Portfolio (Triangle)
     sens_sol = sens_best["solvency"] * 100
     sens_ret = sens_best["return"] * 100
     ax.scatter(sens_sol, sens_ret, s=400, c='#9B59B6', marker='^',
                edgecolors='#6C3483', linewidth=3, label='Scenario Optimal Portfolio', zorder=6)
-
-    # Add annotation for New Scenario
+    
+    # Annotation for New Scenario
     ax.annotate(f'NEW OPTIMAL\n{sens_ret:.2f}% | {sens_sol:.1f}%',
                 xy=(sens_sol, sens_ret), xytext=(-50, 40),
                 textcoords='offset points', fontsize=10, fontweight='bold',
@@ -153,5 +178,5 @@ def plot_scenario_comparison(opt_df, base_best, sens_best, current_ret, current_
     ax.set_title('Scenario Comparison: Optimal Portfolios', fontsize=15)
     ax.grid(True, alpha=0.25, linestyle='--')
     ax.legend(loc='lower right', frameon=True, shadow=True)
-
+    
     return fig
