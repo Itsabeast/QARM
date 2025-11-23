@@ -1,9 +1,13 @@
 import streamlit as st
+from backend.style_utils import apply_sidebar_style
+st.set_page_config(page_title="Results", layout="wide")
+apply_sidebar_style()
 import os, sys
 import numpy as np
 import pandas as pd
 import yfinance as yf
 from datetime import datetime, timedelta
+
 
 
 # --- Path Setup ---
@@ -22,8 +26,6 @@ from backend.data_calculator import (
     compute_ir_shocks_from_eiopa,
     compute_spread_shock_eiopa
 )
-
-st.set_page_config(page_title="Inputs - Solvency II Optimizer", layout="wide")
 
 
 # --------------------------
@@ -130,6 +132,7 @@ def build_backend_inputs(A_gov, A_corp, A_eq1, A_eq2, A_prop, A_tb, total_A,
 # --------------------------
 
 st.title("🏦 Solvency II Asset Allocation Optimizer")
+
 st.markdown("---")
 
 # Auto-calculate toggle
@@ -501,6 +504,7 @@ if st.button("🚀 Optimize Portfolio", disabled=not can_optimize, type="primary
                 st.session_state["liab_duration"] = liab_duration
                 st.session_state["auto_calculated"] = use_auto_params
                 st.session_state["optimization_run"] = True
+                st.session_state["params"] = params  # Save the exact shocks used
 
                 st.success("✅ Optimization completed successfully! Navigate to 'Results' page.")
 

@@ -49,8 +49,22 @@ def objective(x, r, gamma, T, asset_dur, liab_value, liab_duration,
     # Market SCR approximation: sqrt(s^T R s)
     scr_market = np.sqrt(s @ R @ s)
 
-    # Objective: maximize return - gamma * SCR => minimize negative
-    return -(port_ret - gamma * scr_market / T)
+    # === NEW PENALTY LOGIC ===
+    # Calculate Basic Own Funds (Assets - Liabilities)
+    # Assets = T (Total wealth is constant during rebalancing weight optimization)
+    BOF = T - liab_value
+    
+    penalty = 0
+    # If SCR > BOF, we are insolvent. Apply penalty.
+    if scr_market > BOF:
+        shortfall = scr_market - BOF
+        # Quadratic penalty: scales up massively as shortfall increases
+        # Multiplier 1e6 ensures this dominates the 'return' part of the objective
+        penalty = 1_000_000 * (shortfall)
+
+    # Objective: Maximize (Return - Risk) - Penalty
+    # We return negative because scipy minimizes
+    return -(port_ret - (gamma * scr_market / T)) + penalty
 
 
 # =============================
@@ -135,48 +149,7 @@ def define_constraints(T, asset_dur, liab_value, liab_duration, allocation_limit
         ub=allocation_limits["max_weight"].values,
     )
 
-    def min_solvency_con(x):
-        """
-        Constraint: Solvency Ratio >= 1.0 (or BOF - SCR >= 0)
 
-        This constraint requires the calculation of SCR_market_final.
-        It MUST be non-linear as SCR is calculated using complex rules.
-        """
-        w = x[:6]  # Portfolio weights
-        s = x[6:]  # SCR slacks
-
-        # 1. Compute SCR_market (using the approximation from the objective function)
-        # Note: We must use the logic from objective() or call aggregate_market_scr
-        # Here we re-use the slack variables logic for efficiency:
-        # s = [s_int, s_eq, s_prop, s_spread]
-
-        # Determine direction for correlation matrix (based on s_int relative to shocks)
-        # This is tricky inside the solver. A robust approximation is to check the slacks directly
-        # or conservatively use the WORST case correlation.
-        # However, since we already optimize slacks, we can use the slack vector directly.
-
-        # We need to fetch correlation matrices from params (passed into define_constraints)
-        # Note: You need to update the function signature of define_constraints to accept
-        # corr_downward and corr_upward
-
-        # SIMPLIFIED APPROACH for Constraint:
-        # Instead of full re-calculation, we use the slacks which represent the SCR components
-        # The optimizer ensures slacks >= actual risk (via other constraints)
-        # So we can just check: BOF >= sqrt(s' R s)
-
-        # Since 'direction' flips the R matrix, we can just constrain against BOTH matrices
-        # to be safe, or implement the switching logic if possible.
-        # Safest and easiest: Constrain against the MAX of both directions.
-
-        scr_down = np.sqrt(s @ corr_downward.values @ s)
-        scr_up = np.sqrt(s @ corr_upward.values @ s)
-        scr_est = np.maximum(scr_down, scr_up)  # Conservative estimate
-
-        BOF = T - liab_value
-
-        return BOF - scr_est
-
-    min_solvency_constraint = NonlinearConstraint(min_solvency_con, 0, np.inf)
 
     return [
         int_up_constraint,
@@ -184,7 +157,6 @@ def define_constraints(T, asset_dur, liab_value, liab_duration, allocation_limit
         eq_constraint,
         prop_constraint,
         spread_constraint,
-        min_solvency_constraint,
         budget_constraint,
         alloc_constraint,
     ]

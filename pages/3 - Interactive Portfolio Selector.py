@@ -1,4 +1,7 @@
 import streamlit as st
+from backend.style_utils import apply_sidebar_style
+st.set_page_config(page_title="Results", layout="wide")
+apply_sidebar_style()
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,9 +15,9 @@ root_dir = os.path.dirname(current_dir)
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-st.set_page_config(page_title="Interactive Selector", layout="wide")
 
 st.title("🎚️ Interactive Portfolio Selector")
+
 st.markdown("Explore different risk-return tradeoffs along the efficient frontier by selecting alternative portfolios.")
 
 # --- 1. Session State Checks ---
