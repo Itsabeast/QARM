@@ -443,10 +443,9 @@ st.markdown('<div class="section-header">How to Use This Webapp</div>', unsafe_a
 st.markdown("""
 **Follow these steps to optimise your portfolio:**
 
-1. **Define Your Current Position**: Navigate to the **Inputs** page and enter your current asset allocation across 
-   the six asset classes (government bonds, corporate bonds, equity type 1, equity type 2, property, treasury bills). 
-   Input your liability profile, specifically the Best Estimate (BE) of technical provisions and its duration. 
-   Provide Basic Own Funds (BOF) or allow it to be calculated as assets minus liabilities.
+1. **Define Your Current Position**: Navigate to the **Inputs** page and select your ETF tickers. 
+   You can choose to **"Auto-calculate Returns & Shocks"** to fetch market data automatically, or uncheck it to enter manual assumptions.
+   Enter your current asset allocation across the six asset classes and define your liability profile (Best Estimate and Duration).
 
 2. **Set Investment Constraints**: Specify investment limits for each asset class to align the optimisation with your 
    investment strategy. Common constraints include:
@@ -455,35 +454,30 @@ st.markdown("""
    - Minimum treasury bills for liquidity requirements (e.g., 1-5%)
    - Upper and lower bounds for government bonds
 
-3. **Configure Solvency II Parameters**: Input key regulatory parameters such as:
-   - Modified durations for bond portfolios and liabilities
-   - Interest rate shock magnitudes (upward/downward scenarios)
-   - Expected returns for each asset class (historical data or forward-looking estimates)
-   - Spread risk factors for corporate bonds
+3. **Configure Solvency II Parameters**: 
+   - **Durations**: You must manually input the modified duration for your bond portfolios and liabilities.
+   - **Auto-Mode**: If enabled, the app fetches live ECB yield curves for the risk-free rate. You can customize the *Base Risk Free Rate*, *Credit Spread Proxy*, and *Equity Risk Premium*.
+   - **Manual Mode**: You can fully override all expected returns and Solvency II shock parameters (Interest Rate Up/Down, Spread, Equity, Property).
 
-4. **Run the Optimisation**: Execute the optimiser with your chosen penalty parameter ($\\lambda$). The model will 
-   compute capital-efficient portfolios by solving a convex quadratic program that maximises expected return while 
-   penalising high SCR. Multiple values of $\\lambda$ generate the efficient frontier.
+4. **Run the Optimisation**: Click **"Optimize Portfolio"**. The model calculates the entire efficient frontier by solving 
+   multiple convex quadratic programs (sweeping the penalty parameter $\\lambda$) to maximize return while ensuring 
+   the **Solvency Ratio remains above 100%**.
 
 5. **Review Key Performance Indicators**: On the **Results** page, examine:
-   - **Efficient Frontier Chart**: Expected Return on Assets vs Market Risk Solvency Ratio
-   - **Initial vs Optimised Allocation Comparison**: See how the model improves capital efficiency
-   - **SCR Breakdown**: Contributions from interest rate, equity, property, and spread risks
-   - **Marginal SCR by Asset Class**: Identify which assets consume the most capital
-   - **Capital Efficiency Metrics**: ER/mSCR ratios for each asset class
-   - **Diversification Benefits**: Measure capital relief from correlation effects
+   - **Efficient Frontier Chart**: A visual plot of Expected Return vs Solvency Ratio, highlighting the current vs. optimal portfolio.
+   - **Allocation Tables**: Detailed comparison of weights and amounts (in €m) between your initial and the optimal portfolio.
+   - **Risk Decomposition**: A breakdown of the Marginal SCR contribution by asset class.
+   - **Capital Efficiency**: Key metrics including the Solvency Ratio, Market SCR, and Basic Own Funds (BOF).
 
-6. **Select and Analyse Target Portfolio**: Use the **Interactive Portfolio Selector** to:
-   - Move along the efficient frontier using a slider
-   - Pick a desired solvency ratio or return level based on your risk appetite
-   - Inspect the corresponding asset allocation and risk decomposition
-   - Evaluate sensitivity to changes in key parameters (e.g., expected returns, liquidity needs)
-   - Export optimised portfolio weights for implementation
+6. **Conduct Sensitivity Analysis**: Use the tabs in the Results section to test robustness:
+   - **Return Scenarios**: Test how the optimal portfolio changes under "Pessimistic" or "Optimistic" market views.
+   - **Shock Scenarios**: See how the portfolio reacts if regulatory shocks (e.g., Equity shock) increase.
+   - **Custom Scenarios**: Define your own stress tests to see the impact on the optimal allocation.
 
-7. **Conduct Sensitivity Analysis**: Test the robustness of your strategy by exploring scenarios such as:
-   - Lower bond returns → Model shifts to property and maintains government bonds for stability
-   - Higher equity returns → Equity Type 1 may enter the portfolio despite high capital charges
-   - Increased liquidity requirements → Treasury bills allocation rises, limiting overall returns
+7. **Select and Analyse Target Portfolio**: Use the **Interactive Portfolio Selector** page to:
+   - Slide along the efficient frontier to pick a portfolio that matches your specific risk appetite (e.g., "Aggressive" vs "Conservative").
+   - Inspect the specific allocation and risk metrics for that chosen point.
+   - Export the final portfolio weights and summary report to CSV, Excel, or JSON.
 """)
 
 # ============================================================================
