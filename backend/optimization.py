@@ -60,7 +60,7 @@ def objective(x, r, gamma, T, asset_dur, liab_value, liab_duration,
         shortfall = scr_market - BOF
         # Quadratic penalty: scales up massively as shortfall increases
         # Multiplier 1e6 ensures this dominates the 'return' part of the objective
-        penalty = 1_000_000 * (shortfall ** 2)
+        penalty = 1_000_000 * (shortfall)
 
     # Objective: Maximize (Return - Risk) - Penalty
     # We return negative because scipy minimizes
