@@ -1,4 +1,7 @@
 import streamlit as st
+from backend.style_utils import apply_sidebar_style
+st.set_page_config(page_title="Results", layout="wide")
+apply_sidebar_style()
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -7,7 +10,6 @@ from io import BytesIO
 import json
 import os
 import sys
-from backend.style_utils import apply_sidebar_style
 
 
 # --- Path Setup ---
@@ -25,9 +27,7 @@ from backend.data_calculator import (
     compute_ir_shocks_from_eiopa,
     compute_spread_shock_eiopa)
 
-st.set_page_config(page_title="Results", layout="wide")
 
-apply_sidebar_style()
 
 st.title("📈 Optimization Results")
 
