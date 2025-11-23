@@ -1,10 +1,13 @@
 import streamlit as st
+from backend.style_utils import apply_sidebar_style
+apply_sidebar_style()
 import os, sys
 import numpy as np
 import pandas as pd
 import yfinance as yf
 from datetime import datetime, timedelta
-from backend.style_utils import apply_sidebar_style
+
+
 
 # --- Path Setup ---
 current_dir = os.path.dirname(os.path.abspath(__file__))
