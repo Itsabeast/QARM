@@ -27,10 +27,9 @@ from backend.data_calculator import (
 
 st.set_page_config(page_title="Results", layout="wide")
 
+apply_sidebar_style()
 
 st.title("📈 Optimization Results")
-
-apply_sidebar_style()
 
 # --- 1. Session State Checks ---
 if not st.session_state.get("optimization_run"):
