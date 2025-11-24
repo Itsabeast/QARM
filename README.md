@@ -6,7 +6,7 @@ A comprehensive web application for life insurers to optimize their investment p
 [![Python](https://img.shields.io/badge/Python-3.11-blue?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-Educational-green)](LICENSE)
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Overview](#overview)
 - [Features](#features)
@@ -75,7 +75,7 @@ This web application applies the **Solvency II Standard Formula** for the Market
 - Comprehensive summary reports
 - Downloadable allocation tables and risk metrics
 
-## 📚 Academic Foundation
+## Academic Foundation
 
 This application is based on the Master's thesis:
 
@@ -94,7 +94,7 @@ Master in Actuarial Science, ISEG Lisbon School of Economics & Management
 - **Delegated Regulation (EU) 2015/35** (Standard Formula specifications)
 - **EIOPA Guidelines** on Market Risk calibration
 
-## 🚀 Installation
+## Installation
 
 ### Prerequisites
 - Python 3.11+
@@ -130,7 +130,7 @@ code .
 # Select "Reopen in Container" when prompted
 ```
 
-## 📖 Usage
+## Usage
 
 ### Step-by-Step Guide
 
@@ -178,7 +178,7 @@ Use the **Portfolio Selector** to:
 - Select risk/return profiles matching your appetite
 - Export final recommendations in multiple formats
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 solvency-ii-optimizer/
@@ -204,7 +204,7 @@ solvency-ii-optimizer/
 └── README.md                   # This file
 ```
 
-## 🔬 Methodology
+## Methodology
 
 ### Optimization Framework
 
@@ -242,7 +242,7 @@ The tool calculates the **ER/mSCR ratio** (Expected Return / Marginal SCR) to id
 - **Second Best**: Property (ER/mSCR ≈ 0.29-0.31)
 - **Least Efficient**: Equity Type 2 (ER/mSCR ≈ 0.14-0.15)
 
-## 👥 Team
+## Team
 
 ### Back-end Development (Portfolio Optimization & Modelling)
 - **Hoai Thuong Phan** - MSc Quantitative Asset & Risk Management
@@ -256,7 +256,7 @@ The tool calculates the **ER/mSCR ratio** (Expected Return / Marginal SCR) to id
 ### Academic Supervision
 - **Prof. Divernois Marc-Aurèle** - HEC Lausanne
 
-## ⚠️ Disclaimer
+## Disclaimer
 
 This web application was developed for **educational and prototype purposes only**. It should not be considered as regulatory or investment advice.
 
@@ -267,11 +267,11 @@ This web application was developed for **educational and prototype purposes only
 - Regulatory approval may be required before implementing optimized portfolios
 - Users should consult with qualified actuaries, risk managers, and regulatory experts before making investment decisions
 
-## 📄 License
+## License
 
 This project is intended for educational purposes only. For commercial use, please contact the development team.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - EIOPA for providing risk-free rate term structures
 - Bloomberg and MSCI for benchmark indices
