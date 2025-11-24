@@ -210,7 +210,7 @@ solvency-ii-optimizer/
 
 The optimizer uses **Convex Quadratic Programming (CQP)** to solve:
 
-$$\max \; \mathbb{E}[r^T x] - \lambda \cdot \sqrt{SCR^T \cdot \rho \cdot SCR}$$
+$$\max \mathbb{E}[r^T x] - \lambda \cdot \sqrt{SCR^T \cdot \rho \cdot SCR}$$
 
 Where:
 - $r$ = expected returns vector
