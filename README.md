@@ -18,7 +18,7 @@ A comprehensive web application for life insurers to optimize their investment p
 - [Team](#team)
 - [Disclaimer](#disclaimer)
 
-## 🎯 Overview
+## Overview
 
 This web application applies the **Solvency II Standard Formula** for the Market Risk module to compute capital-efficient portfolios along an efficient frontier. The optimizer helps insurers make informed decisions that enhance profitability while maintaining strong solvency positions.
 
@@ -29,7 +29,7 @@ This web application applies the **Solvency II Standard Formula** for the Market
 - **Real-time Optimization**: Instant results with interactive visualizations
 - **Auto-calculation Mode**: Fetches live market data from ECB and ETF providers
 
-## ✨ Features
+## Features
 
 ### 1. Portfolio Optimization
 - Multi-objective optimization balancing expected returns vs. SCR
