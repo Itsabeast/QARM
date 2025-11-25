@@ -316,6 +316,7 @@ with st.expander("⚙️ Advanced Settings", expanded=not use_auto_params):
             min_value=0.0, max_value=0.10, value=0.020, step=0.001, format="%.3f",
             help="Added to Risk Free Rate to set the minimum floor for equity returns."
         )
+        st.markdown("**Expected Returns (annual)**")
         if use_auto_params:
             st.info("✓ Returns will be computed from ETF historical data")
             r_gov, r_corp, r_eq1, r_eq2, r_prop, r_tb = 0.029, 0.041, 0.064, 0.064, 0.056, 0.006
