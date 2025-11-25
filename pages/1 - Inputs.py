@@ -135,22 +135,23 @@ st.title("Solvency II Asset Allocation Optimizer")
 
 st.markdown("---")
 
+
 # ==========================================
 # PORTFOLIO ALLOCATION
 # ==========================================
 col1, col2 = st.columns([1.5, 1])
 
 with col1:
-    st.subheader("Assets")
-    total_A = st.number_input("Total Assets (€ millions)", min_value=0.0, value=1700.1, step=10.0)
+    st.subheader("📊 Portfolio Allocation")
+    total_A = st.number_input("Total Assets (€ millions)", min_value=0.0, value=2000.0, step=10.0)
 
     st.markdown("**Asset Allocation (€ millions)**")
-    A_gov = st.number_input("Government Bonds", min_value=0.0, value=830.0, step=1.0)
-    A_corp = st.number_input("Corporate Bonds", min_value=0.0, value=586.0, step=1.0)
-    A_eq1 = st.number_input("Equity Type 1 (Developed Markets)", min_value=0.0, value=0.0, step=1.0)
-    A_eq2 = st.number_input("Equity Type 2 (Emerging Markets)", min_value=0.0, value=102.5, step=1.0)
-    A_prop = st.number_input("Property", min_value=0.0, value=42.0, step=1.0)
-    A_tb = st.number_input("Treasury Bills", min_value=0.0, value=139.6, step=1.0)
+    A_gov = st.number_input("Government Bonds", min_value=0.0, value=1200.0, step=1.0)
+    A_corp = st.number_input("Corporate Bonds", min_value=0.0, value=600.0, step=1.0)
+    A_eq1 = st.number_input("Equity Type 1 (Developed Markets)", min_value=0.0, value=50.0, step=1.0)
+    A_eq2 = st.number_input("Equity Type 2 (Emerging Markets)", min_value=0.0, value=0.0, step=1.0)
+    A_prop = st.number_input("Property", min_value=0.0, value=50.0, step=1.0)
+    A_tb = st.number_input("Treasury Bills", min_value=0.0, value=100.0, step=1.0)
 
     total_allocated = A_gov + A_corp + A_eq1 + A_eq2 + A_prop + A_tb
     st.progress(min(1.0, total_allocated / max(total_A, 1)))
@@ -161,36 +162,21 @@ with col1:
         st.warning(f"⚠ Total allocated: €{total_allocated:.1f}m (Target: €{total_A:.1f}m)")
 
 with col2:
-    st.subheader("Liabilities & Durations")
-    BE_value = st.number_input("Best Estimate Liabilities (€m)", min_value=0.0, value=1424.2, step=10.0)
-    BE_dur = st.number_input("Liabilities Duration (years)", min_value=0.0, value=6.6, step=0.1)
+    st.subheader("📋 Liabilities & Durations")
+    BE_value = st.number_input("Best Estimate Liabilities (€m)", min_value=0.0, value=1800.0, step=10.0)
+    BE_dur = st.number_input("Liabilities Duration (years)", min_value=0.0, value=14.0, step=0.1)
 
     # ----------------------------------------------------
-    # CHANGED: Durations are now ALWAYS visible inputs
+    # ASSET DURATIONS
     # ----------------------------------------------------
     st.markdown("**Asset Durations (years)**")
     st.info("ℹ️ Please input the modified duration from your fund factsheet.")
-    dur_gov = st.number_input("Gov Bonds Duration", 0.0, 50.0, 5.2, 0.1)
-    dur_corp = st.number_input("Corp Bonds Duration", 0.0, 50.0, 5.0, 0.1)
+    dur_gov = st.number_input("Gov Bonds Duration", 0.0, 50.0, 12.0, 0.1)
+    dur_corp = st.number_input("Corp Bonds Duration", 0.0, 50.0, 10.0, 0.1)
     dur_tb = st.number_input("T-Bills Duration", 0.0, 10.0, 0.1, 0.1)
 
-
 st.markdown("---")
 
-# Auto-calculate toggle
-# Updated help text to reflect that tickers are now for reference/input in both modes
-use_auto_params = st.checkbox(
-    "🤖 Auto-calculate Returns & Shocks from Market Data",
-    value=st.session_state.get("auto_calculated", True),
-    help="If checked, the app uses historical data from the tickers below to estimate returns and risks. If unchecked, it uses the manual values in Advanced Settings."
-)
-
-if use_auto_params:
-    st.success("✨ **Automated Mode**: Parameters will be computed from the tickers below.")
-else:
-    st.info("📝 **Manual Mode**: Tickers are recorded for reference, but parameters must be set in Advanced Settings.")
-
-st.markdown("---")
 
 
 # ==========================================
