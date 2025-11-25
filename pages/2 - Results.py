@@ -523,6 +523,8 @@ if False:
         scr_sprd_val
     ])
 
+# BUG
+st.markdown(opt_df)
 
 market_SCR_opt = opt_df.loc[best_idx, "SCR_breakdown"]
 
