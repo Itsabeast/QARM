@@ -77,13 +77,13 @@ def validate_inputs(A_gov, A_corp, A_eq1, A_eq2, A_prop, A_tb, total_A,
     w_tb = A_tb / denom
 
     if not (gov_min - 1e-9 <= w_gov <= gov_max + 1e-9):
-        errs.append(f"Government weight {w_gov:.3f} violates [{gov_min:.2f}, {gov_max:.2f}].")
+        errs.append(f"Government weight of {w_gov:.3f} violates allocation limit [{gov_min:.2f}, {gov_max:.2f}].")
     if w_corp > corp_max + 1e-9:
-        errs.append(f"Corporate weight {w_corp:.3f} exceeds {corp_max:.2f}.")
+        errs.append(f"Corporate weight of {w_corp:.3f} violates allocation limit {corp_max:.2f}.")
     if (w_eq1 + w_eq2 + w_prop) > illiq_max + 1e-9:
-        errs.append(f"Illiquid (eq1+eq2+prop) {w_eq1 + w_eq2 + w_prop:.3f} exceeds {illiq_max:.2f}.")
+        errs.append(f"Illiquid (eq1+eq2+prop) weight of {w_eq1 + w_eq2 + w_prop:.3f} violates allocation limit {illiq_max:.2f}.")
     if not (tb_min - 1e-9 <= w_tb <= tb_max + 1e-9):
-        warns.append(f"T-bills {w_tb:.3f} outside [{tb_min:.2f}, {tb_max:.2f}].")
+        warns.append(f"T-bills weight of {w_tb:.3f} violates allocation limit [{tb_min:.2f}, {tb_max:.2f}].")
 
     return errs, warns
 
@@ -131,29 +131,60 @@ def build_backend_inputs(A_gov, A_corp, A_eq1, A_eq2, A_prop, A_tb, total_A,
 # UI Content
 # --------------------------
 
-st.title("🏦 Solvency II Asset Allocation Optimizer")
+st.title("Solvency II Asset Allocation Optimizer")
 
 st.markdown("---")
 
-# Auto-calculate toggle
-# Updated help text to reflect that tickers are now for reference/input in both modes
-use_auto_params = st.checkbox(
-    "🤖 Auto-calculate Returns & Shocks from Market Data",
-    value=st.session_state.get("auto_calculated", True),
-    help="If checked, the app uses historical data from the tickers below to estimate returns and risks. If unchecked, it uses the manual values in Advanced Settings."
-)
 
-if use_auto_params:
-    st.success("✨ **Automated Mode**: Parameters will be computed from the tickers below.")
-else:
-    st.info("📝 **Manual Mode**: Tickers are recorded for reference, but parameters must be set in Advanced Settings.")
+# ==========================================
+# PORTFOLIO ALLOCATION
+# ==========================================
+col1, col2 = st.columns([1.5, 1])
+
+with col1:
+    st.subheader("📊 Portfolio Allocation")
+    total_A = st.number_input("Total Assets (€ millions)", min_value=0.0, value=2000.0, step=10.0)
+
+    st.markdown("**Asset Allocation (€ millions)**")
+    A_gov = st.number_input("Government Bonds", min_value=0.0, value=1200.0, step=1.0)
+    A_corp = st.number_input("Corporate Bonds", min_value=0.0, value=600.0, step=1.0)
+    A_eq1 = st.number_input("Equity Type 1 (Developed Markets)", min_value=0.0, value=50.0, step=1.0)
+    A_eq2 = st.number_input("Equity Type 2 (Emerging Markets)", min_value=0.0, value=0.0, step=1.0)
+    A_prop = st.number_input("Property", min_value=0.0, value=50.0, step=1.0)
+    A_tb = st.number_input("Treasury Bills", min_value=0.0, value=100.0, step=1.0)
+
+    total_allocated = A_gov + A_corp + A_eq1 + A_eq2 + A_prop + A_tb
+    st.progress(min(1.0, total_allocated / max(total_A, 1)))
+
+    if abs(total_allocated - total_A) < 1e-6:
+        st.success(f"✓ Total allocated: €{total_allocated:.1f}m")
+    else:
+        st.warning(f"⚠ Total allocated: €{total_allocated:.1f}m (Target: €{total_A:.1f}m)")
+
+with col2:
+    st.subheader("📋 Liabilities & Durations")
+    BE_value = st.number_input("Best Estimate Liabilities (€m)", min_value=0.0, value=1800.0, step=10.0)
+    BE_dur = st.number_input("Liabilities Duration (years)", min_value=0.0, value=14.0, step=0.1)
+
+    # ----------------------------------------------------
+    # ASSET DURATIONS
+    # ----------------------------------------------------
+    st.markdown("**Asset Durations (years)**")
+    st.info("ℹ️ Please input the modified duration from your fund factsheet.")
+    dur_gov = st.number_input("Gov Bonds Duration", 0.0, 50.0, 12.0, 0.1)
+    dur_corp = st.number_input("Corp Bonds Duration", 0.0, 50.0, 10.0, 0.1)
+    dur_tb = st.number_input("T-Bills Duration", 0.0, 10.0, 0.1, 0.1)
 
 st.markdown("---")
+
+
 
 # ==========================================
 # TICKER SELECTION (ALWAYS VISIBLE)
 # ==========================================
-st.subheader("🎯 Select Your ETF Tickers")
+
+
+st.subheader("Select Your ETF Tickers")
 st.markdown("Choose the ETFs/tickers that represent each asset class in your portfolio.")
 
 ticker_col1, ticker_col2, ticker_col3 = st.columns(3)
@@ -217,47 +248,6 @@ if st.button("🔍 Validate Tickers", type="secondary"):
 st.markdown("---")
 
 # ==========================================
-# PORTFOLIO ALLOCATION
-# ==========================================
-col1, col2 = st.columns([1.5, 1])
-
-with col1:
-    st.subheader("📊 Portfolio Allocation")
-    total_A = st.number_input("Total Assets (€ millions)", min_value=0.0, value=2000.0, step=10.0)
-
-    st.markdown("**Asset Allocation (€ millions)**")
-    A_gov = st.number_input("Government Bonds", min_value=0.0, value=1200.0, step=1.0)
-    A_corp = st.number_input("Corporate Bonds", min_value=0.0, value=600.0, step=1.0)
-    A_eq1 = st.number_input("Equity Type 1 (Developed Markets)", min_value=0.0, value=50.0, step=1.0)
-    A_eq2 = st.number_input("Equity Type 2 (Emerging Markets)", min_value=0.0, value=0.0, step=1.0)
-    A_prop = st.number_input("Property", min_value=0.0, value=50.0, step=1.0)
-    A_tb = st.number_input("Treasury Bills", min_value=0.0, value=100.0, step=1.0)
-
-    total_allocated = A_gov + A_corp + A_eq1 + A_eq2 + A_prop + A_tb
-    st.progress(min(1.0, total_allocated / max(total_A, 1)))
-
-    if abs(total_allocated - total_A) < 1e-6:
-        st.success(f"✓ Total allocated: €{total_allocated:.1f}m")
-    else:
-        st.warning(f"⚠ Total allocated: €{total_allocated:.1f}m (Target: €{total_A:.1f}m)")
-
-with col2:
-    st.subheader("📋 Liabilities & Durations")
-    BE_value = st.number_input("Best Estimate Liabilities (€m)", min_value=0.0, value=1800.0, step=10.0)
-    BE_dur = st.number_input("Liabilities Duration (years)", min_value=0.0, value=14.0, step=0.1)
-
-    # ----------------------------------------------------
-    # ASSET DURATIONS
-    # ----------------------------------------------------
-    st.markdown("**Asset Durations (years)**")
-    st.info("ℹ️ Please input the modified duration from your fund factsheet.")
-    dur_gov = st.number_input("Gov Bonds Duration", 0.0, 50.0, 12.0, 0.1)
-    dur_corp = st.number_input("Corp Bonds Duration", 0.0, 50.0, 10.0, 0.1)
-    dur_tb = st.number_input("T-Bills Duration", 0.0, 10.0, 0.1, 0.1)
-
-st.markdown("---")
-
-# ==========================================
 # ADVANCED SETTINGS
 # ==========================================
 with st.expander("⚙️ Advanced Settings", expanded=not use_auto_params):
@@ -269,6 +259,8 @@ with st.expander("⚙️ Advanced Settings", expanded=not use_auto_params):
 
     with col_a:
         st.markdown("**Solvency II Shocks**")
+        st.markdown("1. Interest Rate Shock")
+        st.markdown("2. Spread Shock (Corporate Bond)")
         if use_auto_params:
             use_eiopa_curves = st.checkbox("📊 Use EIOPA Risk-Free Curves", value=True)
             st.session_state['use_eiopa_curves'] = use_eiopa_curves
@@ -282,7 +274,10 @@ with st.expander("⚙️ Advanced Settings", expanded=not use_auto_params):
             ir_down = st.number_input("IR Down", 0.0, 1.0, 0.009, format="%.3f")
             corp_sp = st.number_input("Spread (Corp)", 0.0, 1.0, 0.103, format="%.3f")
 
-        st.markdown("---")
+        st.markdown("3. Equity 1 Shock")
+        st.markdown("4. Equity 2 Shock")
+        st.markdown("5. Property Shock")
+        st.info(("Using standard Solvency II shocks (39% Equity 1, 49% Equity 2, 25% Property)"))
         use_custom_shocks = st.checkbox("Override Standard Formula", value=False)
         if use_custom_shocks:
             eq1_sh = st.number_input("Equity Type 1 (custom)", 0.0, 1.0, 0.39)
@@ -290,7 +285,7 @@ with st.expander("⚙️ Advanced Settings", expanded=not use_auto_params):
             prop_sh = st.number_input("Property (custom)", 0.0, 1.0, 0.25)
         else:
             eq1_sh, eq2_sh, prop_sh = None, None, None
-            st.info("Using standard Solvency II shocks (39%, 49%, 25%)")
+        
 
     with col_b:
         st.markdown("**Risk-Free/Floors Fallback**")
@@ -351,7 +346,7 @@ can_optimize = (len(errs) == 0)
 # ==========================================
 # OPTIMIZE BUTTON & LOGIC
 # ==========================================
-if st.button("🚀 Optimize Portfolio", disabled=not can_optimize, type="primary", use_container_width=True):
+if st.button("Optimize Portfolio", disabled=not can_optimize, type="primary", use_container_width=True):
     with st.spinner("Running optimization... This may take a minute."):
         try:
             # 1. AUTO-CALCULATE LOGIC
