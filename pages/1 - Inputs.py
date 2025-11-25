@@ -223,15 +223,15 @@ col1, col2 = st.columns([1.5, 1])
 
 with col1:
     st.subheader("📊 Portfolio Allocation")
-    total_A = st.number_input("Total Assets (€ millions)", min_value=0.0, value=1652.7, step=10.0)
+    total_A = st.number_input("Total Assets (€ millions)", min_value=0.0, value=2000, step=10.0)
 
     st.markdown("**Asset Allocation (€ millions)**")
-    A_gov = st.number_input("Government Bonds", min_value=0.0, value=782.6, step=1.0)
-    A_corp = st.number_input("Corporate Bonds", min_value=0.0, value=586.0, step=1.0)
-    A_eq1 = st.number_input("Equity Type 1 (Developed Markets)", min_value=0.0, value=0.0, step=1.0)
-    A_eq2 = st.number_input("Equity Type 2 (Emerging Markets)", min_value=0.0, value=102.5, step=1.0)
-    A_prop = st.number_input("Property", min_value=0.0, value=42.0, step=1.0)
-    A_tb = st.number_input("Treasury Bills", min_value=0.0, value=139.6, step=1.0)
+    A_gov = st.number_input("Government Bonds", min_value=0.0, value=1200.0, step=1.0)
+    A_corp = st.number_input("Corporate Bonds", min_value=0.0, value=600.0, step=1.0)
+    A_eq1 = st.number_input("Equity Type 1 (Developed Markets)", min_value=0.0, value=50.0, step=1.0)
+    A_eq2 = st.number_input("Equity Type 2 (Emerging Markets)", min_value=0.0, value=0, step=1.0)
+    A_prop = st.number_input("Property", min_value=0.0, value=50.0, step=1.0)
+    A_tb = st.number_input("Treasury Bills", min_value=0.0, value=100, step=1.0)
 
     total_allocated = A_gov + A_corp + A_eq1 + A_eq2 + A_prop + A_tb
     st.progress(min(1.0, total_allocated / max(total_A, 1)))
@@ -243,16 +243,16 @@ with col1:
 
 with col2:
     st.subheader("📋 Liabilities & Durations")
-    BE_value = st.number_input("Best Estimate Liabilities (€m)", min_value=0.0, value=1424.2, step=10.0)
-    BE_dur = st.number_input("Liabilities Duration (years)", min_value=0.0, value=6.6, step=0.1)
+    BE_value = st.number_input("Best Estimate Liabilities (€m)", min_value=0.0, value=1800, step=10.0)
+    BE_dur = st.number_input("Liabilities Duration (years)", min_value=0.0, value=14, step=0.1)
 
     # ----------------------------------------------------
-    # CHANGED: Durations are now ALWAYS visible inputs
+    # ASSET DURATIONS
     # ----------------------------------------------------
     st.markdown("**Asset Durations (years)**")
     st.info("ℹ️ Please input the modified duration from your fund factsheet.")
-    dur_gov = st.number_input("Gov Bonds Duration", 0.0, 50.0, 5.2, 0.1)
-    dur_corp = st.number_input("Corp Bonds Duration", 0.0, 50.0, 5.0, 0.1)
+    dur_gov = st.number_input("Gov Bonds Duration", 0.0, 50.0, 12, 0.1)
+    dur_corp = st.number_input("Corp Bonds Duration", 0.0, 50.0, 10.0, 0.1)
     dur_tb = st.number_input("T-Bills Duration", 0.0, 10.0, 0.1, 0.1)
 
 st.markdown("---")
@@ -330,12 +330,12 @@ with st.expander("⚙️ Advanced Settings", expanded=not use_auto_params):
 
     with col_c:
         st.markdown("**Allocation Limits (weights)**")
-        gov_min = st.number_input("Gov Min", 0.0, 1.0, 0.25)
-        gov_max = st.number_input("Gov Max", 0.0, 1.0, 0.75)
-        corp_max = st.number_input("Corp Max", 0.0, 1.0, 0.50)
-        illiq_max = st.number_input("Illiquid Max", 0.0, 1.0, 0.20)
+        gov_min = st.number_input("Gov Min", 0.0, 1.0, 0.40)
+        gov_max = st.number_input("Gov Max", 0.0, 1.0, 0.90)
+        corp_max = st.number_input("Corp Max", 0.0, 1.0, 0.40)
+        illiq_max = st.number_input("Illiquid Max", 0.0, 1.0, 0.10)
         tb_min = st.number_input("T-Bills Min", 0.0, 1.0, 0.01)
-        tb_max = st.number_input("T-Bills Max", 0.0, 1.0, 0.05)
+        tb_max = st.number_input("T-Bills Max", 0.0, 1.0, 0.10)
 
 st.markdown("---")
 
