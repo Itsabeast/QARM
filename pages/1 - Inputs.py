@@ -223,7 +223,7 @@ col1, col2 = st.columns([1.5, 1])
 
 with col1:
     st.subheader("📊 Portfolio Allocation")
-    total_A = st.number_input("Total Assets (€ millions)", min_value=0.0, value=2000, step=10.0)
+    total_A = st.number_input("Total Assets (€ millions)", min_value=0.0, value=2000.0, step=10.0)
 
     st.markdown("**Asset Allocation (€ millions)**")
     A_gov = st.number_input("Government Bonds", min_value=0.0, value=1200.0, step=1.0)
