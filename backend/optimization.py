@@ -74,18 +74,23 @@ def objective(x, r, gamma, T, asset_dur, liab_value, liab_duration,
 #  CONSTRAINT DEFINITIONS
 # =============================
 
+# In backend/optimization.py
+
 def define_constraints(T, asset_dur, liab_value, liab_duration, allocation_limits, params, corr_downward, corr_upward):
     """
     Builds nonlinear & linear constraints used in the optimizer.
     All constraints work in WEIGHT space, then convert to amounts internally.
     """
-    int_up_param   = params["interest_up"]
+    int_up_param = params["interest_up"]
     int_down_param = params["interest_down"]
     equity_1_param = params["equity_type1"]
     equity_2_param = params["equity_type2"]
-    prop_params    = params["property"]
-    spread_params  = params["spread"]
+    prop_params = params["property"]
+    spread_params = params["spread"]
     rho = params["rho"]
+
+    # NEW: Get solvency minimum (default to 1.0 if not provided)
+    solvency_min = params.get("solvency_min", 1.0)
 
     lib_delta = liab_duration * liab_value
 
@@ -111,7 +116,7 @@ def define_constraints(T, asset_dur, liab_value, liab_duration, allocation_limit
 
         SCR_eq1 = equity_1_param * A_eq1
         SCR_eq2 = equity_2_param * A_eq2
-        SCR_eq_total = np.sqrt(SCR_eq1**2 + 2*rho*SCR_eq1*SCR_eq2 + SCR_eq2**2)
+        SCR_eq_total = np.sqrt(SCR_eq1 ** 2 + 2 * rho * SCR_eq1 * SCR_eq2 + SCR_eq2 ** 2)
 
         return s_eq - SCR_eq_total
 
@@ -127,11 +132,11 @@ def define_constraints(T, asset_dur, liab_value, liab_duration, allocation_limit
         w_corp = w[1]
         return s_spread - spread_params * T * w_corp
 
-    int_up_constraint   = NonlinearConstraint(int_up_con, 0, np.inf)
+    int_up_constraint = NonlinearConstraint(int_up_con, 0, np.inf)
     int_down_constraint = NonlinearConstraint(int_down_con, 0, np.inf)
-    eq_constraint       = NonlinearConstraint(eq_con, 0, np.inf)
-    prop_constraint     = NonlinearConstraint(prop_con, 0, np.inf)
-    spread_constraint   = NonlinearConstraint(spread_con, 0, np.inf)
+    eq_constraint = NonlinearConstraint(eq_con, 0, np.inf)
+    prop_constraint = NonlinearConstraint(prop_con, 0, np.inf)
+    spread_constraint = NonlinearConstraint(spread_con, 0, np.inf)
 
     # === Linear constraints ===
     # 1. Budget: sum of weights = 1
@@ -141,10 +146,10 @@ def define_constraints(T, asset_dur, liab_value, liab_duration, allocation_limit
 
     # 2. Allocation limits (on weights)
     A_alloc = np.zeros((4, 10))
-    A_alloc[0, 0] = 1              # gov
-    A_alloc[1, [2, 3, 4]] = 1      # illiquid = eq1 + eq2 + prop
-    A_alloc[2, 5] = 1              # t-bills
-    A_alloc[3, 1] = 1              # corp
+    A_alloc[0, 0] = 1  # gov
+    A_alloc[1, [2, 3, 4]] = 1  # illiquid = eq1 + eq2 + prop
+    A_alloc[2, 5] = 1  # t-bills
+    A_alloc[3, 1] = 1  # corp
 
     alloc_constraint = LinearConstraint(
         A_alloc,
@@ -152,12 +157,12 @@ def define_constraints(T, asset_dur, liab_value, liab_duration, allocation_limit
         ub=allocation_limits["max_weight"].values,
     )
 
-    # === Solvency Constraints === (avoid solution of solvency < 100%)
+    # === Solvency Constraints === (avoid solution of solvency < solvency_min)
 
     def solvency_con(x):
         """
-        Enforces solvency >= 100%
-        i.e.  SCR_market <= BOF  <=>  BOF - SCR >= 0
+        Enforces solvency >= solvency_min
+        i.e.  BOF / SCR >= min  <=>  BOF - min * SCR >= 0
         """
         w = x[:6]
         s = x[6:]
@@ -176,11 +181,10 @@ def define_constraints(T, asset_dur, liab_value, liab_duration, allocation_limit
         # Basic Own Funds (constant during optimisation)
         BOF = T - liab_value
 
-        # Return BOF - SCR >= 0
-        return BOF - scr_market
-    
-    solvency_constraint = NonlinearConstraint(solvency_con, 0, np.inf)
+        # Return BOF - min * SCR >= 0
+        return BOF - (solvency_min * scr_market)
 
+    solvency_constraint = NonlinearConstraint(solvency_con, 0, np.inf)
 
     return [
         int_up_constraint,

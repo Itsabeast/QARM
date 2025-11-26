@@ -93,6 +93,7 @@ def build_backend_inputs(A_gov, A_corp, A_eq1, A_eq2, A_prop, A_tb, total_A,
                          r_gov, r_corp, r_eq1, r_eq2, r_prop, r_tb,
                          ir_up, ir_down, corp_sp,
                          gov_min, gov_max, corp_max, illiq_max, tb_min, tb_max,
+                         solvency_min,
                          use_custom_shocks=False, eq1_sh=None, eq2_sh=None, prop_sh=None):
     cfg = load_config()
     corr_down, corr_up = get_corr_matrices(cfg)
@@ -122,6 +123,7 @@ def build_backend_inputs(A_gov, A_corp, A_eq1, A_eq2, A_prop, A_tb, total_A,
         "interest_down": ir_down, "interest_up": ir_up, "spread": corp_sp,
         "equity_type1": equity_1_shock, "equity_type2": equity_2_shock, "property": property_shock,
         "rho": solv["rho"],
+        "solvency_min": solvency_min,
     }
 
     return initial_asset, BE_value, BE_dur, corr_down, corr_up, allocation_limits, params
@@ -346,6 +348,14 @@ with st.expander("⚙️ Advanced Settings", expanded=not use_auto_params):
         tb_min = st.number_input("T-Bills Min", 0.0, 1.0, 0.01)
         tb_max = st.number_input("T-Bills Max", 0.0, 1.0, 0.10)
 
+        st.markdown("---")
+        st.markdown("**Regulatory Constraints**")
+        solvency_min = st.number_input(
+            "Min Solvency Ratio",
+            min_value=1.0, max_value=3.0, value=1.50, step=0.05, format="%.2f",
+            help="Minimum required Solvency II ratio (BOF/SCR) for the optimized portfolio. Default is 1.50 (150%)."
+        )
+
 st.markdown("---")
 
 # Validation
@@ -477,6 +487,7 @@ if st.button("Optimize Portfolio", disabled=not can_optimize, type="primary", us
                     r_gov, r_corp, r_eq1, r_eq2, r_prop, r_tb,
                     ir_up, ir_down, corp_sp,
                     gov_min, gov_max, corp_max, illiq_max, tb_min, tb_max,
+                    solvency_min,
                     use_custom_shocks, eq1_sh, eq2_sh, prop_sh
                 )
 
