@@ -75,14 +75,6 @@ This web application applies the **Solvency II Standard Formula** for the Market
 - Comprehensive summary reports
 - Downloadable allocation tables and risk metrics
 
-## Academic Foundation
-
-This application is based on the Master's thesis:
-
-**"Trade-Off Between Asset Allocation and Solvency II Requirements: The Case of a Portuguese Life Insurer"**  
-*Daniel Alexandre da Silva Machado (2024)*  
-Master in Actuarial Science, ISEG Lisbon School of Economics & Management
-
 ### Key References
 - Kouwenberg, R. (2017, 2018): Strategic Asset Allocation and Risk Budgeting for Insurers under Solvency II
 - Braun et al. (2015): Portfolio Optimization under Solvency II Constraints
