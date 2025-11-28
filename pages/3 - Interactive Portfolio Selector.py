@@ -16,7 +16,7 @@ if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
 
-st.title("🎚️ Interactive Portfolio Selector")
+st.title("Interactive Portfolio Selector")
 st.markdown("Explore different risk-return tradeoffs along the efficient frontier by selecting alternative portfolios.")
 
 # --- 1. Session State Checks ---
@@ -51,82 +51,138 @@ st.session_state["selected_frontier_idx"] = selected_idx
 selected_port = opt_df.iloc[selected_idx]
 
 # --- 4. Visualization (Fixed with Pareto Filter) ---
-st.subheader("📉 Efficient Frontier")
+st.subheader("Efficient Frontier")
 
-# A. PARETO FILTER LOGIC (Fixes the "messy line" issue)
+# --- 1. Sort & Extract Pareto Frontier ---
 opt_sorted = opt_df.sort_values(by="solvency", ascending=False).copy()
 opt_sorted["max_return_seen"] = opt_sorted["return"].cummax()
 pareto_frontier = opt_sorted[opt_sorted["return"] >= opt_sorted["max_return_seen"]]
 pareto_frontier = pareto_frontier.sort_values(by="solvency")
 
-# B. PLOT
-fig, ax = plt.subplots(figsize=(10, 6))
-ax.set_facecolor('#f8f9fa')
-fig.patch.set_facecolor('white')
+# --- 2. Create Figure (WHITE background) ---
+fig, ax = plt.subplots(figsize=(12, 7))
+ax.set_facecolor("white")
+fig.patch.set_facecolor("white")
 
-# Plot the smooth Pareto line
-ax.plot(
-    pareto_frontier["solvency"] * 100, 
-    pareto_frontier["return"] * 100, 
-    '-', 
-    color='#4ECDC4', 
-    linewidth=2.5, 
-    label='Efficient Frontier',
-    zorder=2
-)
-
-# Plot all feasible points faintly
+# --- 3. Feasible Set (gray dots) ---
 ax.scatter(
-    opt_df["solvency"] * 100, 
-    opt_df["return"] * 100, 
-    s=30, 
-    color='gray', 
-    alpha=0.2, 
-    label='Feasible Portfolios',
+    opt_df["solvency"] * 100,
+    opt_df["return"] * 100,
+    s=30,
+    color="gray",
+    alpha=0.25,
+    label="Feasible Portfolios",
     zorder=1
 )
 
-# Highlight Selected Portfolio (Purple Circle)
-sel_sol = selected_port["solvency"] * 100
-sel_ret = selected_port["return"] * 100
-ax.scatter(
-    sel_sol, sel_ret, 
-    s=500, c='#9B59B6', marker='o', 
-    edgecolors='#6C3483', linewidth=3, 
-    label='Selected Portfolio', 
-    zorder=10
+# --- 4. Efficient Frontier (dark blue) ---
+ax.plot(
+    pareto_frontier["solvency"] * 100,
+    pareto_frontier["return"] * 100,
+    '-',
+    color="#003366",
+    linewidth=3,
+    label="Efficient Frontier",
+    zorder=2
 )
 
-# Highlight Optimal Portfolio (Gold Star)
+# --- 5. Optimal Portfolio (gold star) ---
+optimal_solv = best["solvency"] * 100
+optimal_ret  = best["return"] * 100
+
 ax.scatter(
-    best["solvency"] * 100, 
-    best["return"] * 100, 
-    s=400, c='#FFD700', marker='*', 
-    edgecolors='#FF8C00', linewidth=2, 
-    label='Optimal Portfolio', 
-    zorder=9
+    optimal_solv, optimal_ret,
+    s=120, c="#FFD700", marker="*",
+    edgecolors="#FF8C00", linewidth=3,
+    label="Optimal Portfolio",
+    zorder=5
 )
 
-# Add annotation for selected point
+
+# --- OPTIMAL annotation (ABOVE the line) ---
 ax.annotate(
-    f'SELECTED\n{sel_ret:.2f}% | {sel_sol:.1f}%',
-    xy=(sel_sol, sel_ret), xytext=(20, 20),
-    textcoords='offset points', fontsize=10, fontweight='bold',
-    bbox=dict(boxstyle='round,pad=0.5', facecolor='#9B59B6', edgecolor='#6C3483', alpha=0.9),
-    arrowprops=dict(arrowstyle='->', color='#6C3483', lw=2), 
-    color='white', zorder=11
+    f"OPTIMAL\n{optimal_ret:.2f}% | {optimal_solv:.1f}%",
+    xy=(optimal_solv, optimal_ret),
+    xytext=(0, 35),          # ABOVE (positive y-offset)
+    textcoords='offset points',
+    ha='center', va='bottom',
+    fontsize=10, fontweight='bold',
+    bbox=dict(
+        boxstyle='round,pad=0.6',
+        facecolor='#FFD700',
+        edgecolor='#FF8C00',
+        alpha=0.9
+    ),
+    arrowprops=dict(
+        arrowstyle='->',
+        color='#FF8C00',
+        lw=2.5
+    ),
+    zorder=6
 )
 
-ax.set_xlabel('Solvency Ratio (%)', fontsize=12)
-ax.set_ylabel('Expected Return (%)', fontsize=12)
-ax.legend(loc='lower right', frameon=True, fancybox=True, shadow=True)
-ax.grid(True, alpha=0.25, linestyle='--')
 
+# --- 6. Selected Portfolio (purple circle) ---
+sel_solv = selected_port["solvency"] * 100
+sel_ret  = selected_port["return"] * 100
+
+ax.scatter(
+    sel_solv, sel_ret,
+    s=150, c="#9B59B6", marker="o",
+    edgecolors="#6C3483", linewidth=2.5,
+    alpha=0.95,
+    label="Selected Portfolio",
+    zorder=4
+)
+
+
+# --- SELECTED annotation (BELOW the line) ---
+ax.annotate(
+    f"SELECTED\n{sel_ret:.2f}% | {sel_solv:.1f}%",
+    xy=(sel_solv, sel_ret),
+    xytext=(0, -40),         # BELOW (negative y-offset)
+    textcoords='offset points',
+    ha='center', va='top',
+    fontsize=9, fontweight='bold',
+    bbox=dict(
+        boxstyle='round,pad=0.6',
+        facecolor='#E8DAEF',
+        edgecolor='#6C3483',
+        alpha=0.9
+    ),
+    arrowprops=dict(
+        arrowstyle='->',
+        color='#6C3483',
+        lw=2
+    ),
+    zorder=6
+)
+
+
+# --- 7. Styling (same as second part) ---
+ax.set_xlabel("Solvency Ratio (%)", fontsize=12, fontweight="bold", color="#2c3e50")
+ax.set_ylabel("Expected Return (%)", fontsize=12, fontweight="bold", color="#2c3e50")
+
+ax.tick_params(colors="#2c3e50")
+ax.grid(True, alpha=0.25, linestyle="--", linewidth=1)
+
+# Legend
+ax.legend(
+    loc="upper right",
+    frameon=True,
+    fancybox=True,
+    shadow=True
+)
+
+
+# --- Display ---
 st.pyplot(fig, use_container_width=True)
+
+
 
 # --- 5. Metrics ---
 st.markdown("---")
-st.subheader("📊 Selected Portfolio Metrics")
+st.subheader("Selected Portfolio Metrics")
 
 c1, c2, c3 = st.columns(3)
 c1.metric(
@@ -148,7 +204,7 @@ c3.metric(
 
 # --- 6. Allocation Detail (Fixed Formatting) ---
 st.markdown("---")
-st.subheader("💼 Allocation Detail")
+st.subheader("Allocation Detail")
 
 df_alloc = pd.DataFrame({
     "Asset Class": ["Gov Bonds", "Corp Bonds", "Equity 1", "Equity 2", "Property", "T-Bills"],
@@ -168,7 +224,7 @@ st.dataframe(
 
 # --- 7. Exports ---
 st.markdown("---")
-st.subheader("💾 Export Selected Portfolio")
+st.subheader("Export Selected Portfolio")
 
 c_ex1, c_ex2, c_ex3 = st.columns(3)
 

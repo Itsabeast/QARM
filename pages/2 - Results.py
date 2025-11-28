@@ -798,19 +798,18 @@ if False:
     if (disp_df["mSCR"] < 0).any():
         st.caption("Note: Assets with negative marginal SCR (risk reducers/hedges) are excluded from the pie chart.")
 
-st.markdown("---")
 
 # Sensitivity Analysis
-st.subheader("🔬 Sensitivity Analysis")
+st.subheader("Sensitivity Analysis")
 
 st.markdown("""
     Explore how the optimal portfolio allocation changes under different scenarios.
     Adjust the parameters below to see the impact on asset allocation and risk metrics.
     """)
 sens_tab1, sens_tab2, sens_tab3 = st.tabs([
-    "📊 Return Scenarios",
-    "⚡ Shock Scenarios",
-    "🎯 Custom Scenario"
+    "Return Scenarios",
+    "Shock Scenarios",
+    "Custom Scenario"
 ])
 
 # --- CRITICAL FIX: Retrieve the User's Actual Limits ---
@@ -1198,7 +1197,8 @@ with sens_tab3:
 # =========================================================
 # 💾 EXPORT SECTION (With Sensitivity Scenarios & Specific Frontiers)
 # =========================================================
-st.subheader("💾 Export Results")
+st.markdown("---")
+st.subheader("Export Results")
 col_export1, col_export2 = st.columns(2)
 
 # --- Define Scenarios ---
@@ -1461,18 +1461,18 @@ def generate_comprehensive_report():
 
 # --- UI FOR EXPORT ---
 with col_export1:
-    st.markdown("### 📊 Comprehensive Excel Report")
+    st.markdown("**Comprehensive Excel Report**")
     st.markdown("Generates a workbook with **10+ Tabs**:")
-    st.markdown("1. **Executive Summary** (Current vs Optimal Pies)")
-    st.markdown("2. **mSCR Analysis** (Risk Tables & Charts)")
-    st.markdown("3-10. **Stress Test Scenarios** (Pies & Frontiers)")
+    st.markdown("1. Executive Summary** (Current vs Optimal Pies)")
+    st.markdown("2. mSCR Analysis** (Risk Tables & Charts)")
+    st.markdown("3-10. Stress Test Scenarios** (Pies & Frontiers)")
     st.info("⚠️ **Note:** This runs the optimizer 8 times. It may take ~30-60 seconds.")
     
     if st.button("Generate Stress Test Report"):
         with st.spinner("Compiling and running 8 optimization scenarios..."):
             excel_data = generate_comprehensive_report()
             st.download_button(
-                label="📥 Download Full Report (.xlsx)",
+                label="Download Full Report (.xlsx)",
                 data=excel_data,
                 file_name=f"SolvencyII_StressTest_{datetime.now().strftime('%Y%m%d')}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -1480,7 +1480,7 @@ with col_export1:
             )
 
 with col_export2:
-    st.markdown("### 📄 Simple Exports")
+    st.markdown("**Simple Exports**")
     st.markdown("Download just the current screen's data.")
     
     if 'allocation_export' not in locals():
