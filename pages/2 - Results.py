@@ -899,11 +899,7 @@ with sens_tab1:
                     sc2.metric("New Solvency", f"{sens_best['solvency'] * 100:.1f}%", 
                                f"{(sens_best['solvency'] - best_sol) * 100:.1f}pp")
 
-                    # Allocation Change
-                    st.markdown("**Asset Allocation Change (pp)**")
-                    diff = (sens_best["w_opt"] - best["w_opt"]) * 100
-                    df_diff = pd.DataFrame([diff], columns=["Gov", "Corp", "Eq1", "Eq2", "Prop", "TB"])
-                    st.dataframe(df_diff.style.format("{:+.2f}"), hide_index=True)
+
                 else:
                     st.error("Optimization failed for this scenario.")
 
@@ -1022,16 +1018,7 @@ with sens_tab2:
                         "Change (pp)": (sens_best["w_opt"] - best["w_opt"]) * 100
                     })
                     
-                    # --- FIX: Format ONLY numeric columns to avoid string error ---
-                    st.dataframe(
-                        comparison_df.style.format({
-                            "Base (%)": "{:.1f}",
-                            "Scenario (%)": "{:.1f}",
-                            "Change (pp)": "{:+.1f}"
-                        }).background_gradient(subset=["Change (pp)"], cmap="RdYlGn", vmin=-10, vmax=10),
-                        use_container_width=True
-                    )
-
+                   
                 else:
                     st.error("Optimization failed. The shocks might be too severe to maintain solvency.")
 
@@ -1178,15 +1165,7 @@ with sens_tab3:
                         "Change (pp)": (custom_best["w_opt"] - best["w_opt"]) * 100
                     })
 
-                    st.dataframe(
-                        alloc_comparison.style.format({
-                            "Base Case (%)": "{:.1f}",
-                            "Custom Case (%)": "{:.1f}",
-                            "Change (pp)": "{:+.1f}"
-                        }).background_gradient(subset=["Change (pp)"], cmap="RdYlGn", vmin=-10, vmax=10),
-                        use_container_width=True
-                    )
-                    
+                                  
                 else:
                     st.error("❌ Optimization failed for this custom scenario. Try relaxing constraints or improving returns.")
 
