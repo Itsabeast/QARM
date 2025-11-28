@@ -212,41 +212,73 @@ Where:
 
 ### SCR Calculation
 
-flowchart TD
+#### 1. Stand-Alone SCR — Interest Rate Risk
 
-    subgraph A[Portfolio Inputs]
-        A1(Asset Exposures<br/>A_i)
-        A2(Asset Durations<br/>D_{A,i})
-        A3(Liability Value<br/>L)
-        A4(Liability Duration<br/>D_L)
-    end
+The interest rate SCR is the maximum loss under the upward and downward shocks:
 
-    subgraph B[Stand-Alone SCR Calculations]
-        B1[Interest Rate SCR<br/><br/>SCR_IR = max{Up, Down}]
-        B2[Equity SCR<br/><br/>SCR_eq = sqrt(SCR1² + 2ρ SCR1 SCR2 + SCR2²)]
-        B3[Spread SCR<br/><br/>SCR_spr = A_corp · s_spread(d)]
-        B4[Property SCR<br/><br/>SCR_prop = 0.25 · A_prop]
-    end
+$$
+SCR_{IR} =
+\max \{
+s_{down} (D_L L - \sum_i D_{A,i} A_i),\;
+s_{up} (\sum_i D_{A,i} A_i - D_L L),\;
+0
+\}
+$$
 
-    subgraph C[EIOPA Correlation Matrix<br/>Annex IV]
-        C1[ρ_ij<br/>Two versions:<br/>IR-Up / IR-Down]
-    end
 
-    subgraph D[Aggregation]
-        D1[Market SCR<br/><br/>SCR_market = sqrt(SCRᵀ ρ SCR)]
-    end
+#### 2. Stand-Alone SCR — Equity Risk
 
-    A --> B1
-    A --> B2
-    A --> B3
-    A --> B4
+Equity Type 1 (39%) and Type 2 (49%) exposures are shocked separately and aggregated using the Solvency II equity correlation ρ = 0.75:
 
-    B1 --> C1
-    B2 --> C1
-    B3 --> C1
-    B4 --> C1
+$$
+SCR_1 = A_{eq1} \cdot 0.39
+$$
 
-    C1 --> D1
+$$
+SCR_2 = A_{eq2} \cdot 0.49
+$$
+
+$$
+SCR_{eq} =
+\sqrt{
+SCR_1^2 + 2 \rho SCR_1 SCR_2 + SCR_2^2
+}
+$$
+
+
+#### 3. Stand-Alone SCR — Spread Risk
+
+Spread risk applies the duration-based Solvency II spread shock:
+
+$$
+SCR_{spr} = A_{corp} \cdot s_{spread}(d)
+$$
+
+where s_spread(d) follows the Article 176 piecewise formula.
+
+
+#### 4. Stand-Alone SCR — Property Risk
+
+A fixed 25% capital shock applies:
+
+$$
+SCR_{prop} = A_{prop} \cdot 0.25
+$$
+
+
+#### 5. Aggregation of Market Risk Sub-Modules
+
+Total Market SCR includes diversification using the EIOPA correlation matrix:
+
+$$
+SCR_{market} =
+\sqrt{
+\sum_i \sum_j SCR_i \, SCR_j \, \rho_{ij}
+}
+$$
+
+EIOPA provides two correlation matrices (Annex IV), depending on whether the decisive interest-rate shock is upward or downward.
+
 
 ## Team
 
@@ -282,7 +314,6 @@ This project is intended for educational purposes only. For commercial use, plea
 - EIOPA for providing risk-free rate term structures
 - Bloomberg and MSCI for benchmark indices
 - HEC Lausanne for academic support
-- Daniel Machado for the foundational research
 
 ---
 
