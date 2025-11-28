@@ -208,17 +208,17 @@ col_left, col_right = st.columns([3, 1])
 with col_left:
     st.markdown('<div class="main-title">Solvency II Portfolio Optimiser</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="subtitle">Exploring the trade-off between investment returns and Solvency II Market Risk capital for insurers.</div>',
+        '<div class="subtitle">Exploring the trade-off between asset allocation, profitability, and Solvency II Market Risk capital.</div>',
         unsafe_allow_html=True)
 
     st.markdown("""
     <div class="intro-text">
-    This web application enables insurers to optimise their investment portfolios under the Solvency II regulatory framework. 
+    This web application enables life insurers to optimise their investment portfolios under the Solvency II regulatory framework. 
     By taking the insurer's balance sheet as input, the tool applies the <strong>Solvency II Standard Formula</strong> for the 
     Market Risk module to compute capital-efficient portfolios along an efficient frontier. The optimiser balances expected 
     returns on assets against the Solvency Capital Requirement (SCR), helping insurers make informed decisions that enhance 
     profitability while maintaining strong solvency positions. The methodology is based on the academic paper by 
-    <em>Kouwenberg, R. (2017, 2018)</em>.
+    <em>Machado (2024)</em>, adapted for practical portfolio management.
     </div>
     """, unsafe_allow_html=True)
 
@@ -251,10 +251,10 @@ with col1:
     st.markdown('<div class="nav-box">', unsafe_allow_html=True)
     st.markdown('<div class="nav-title">1️⃣ Input Data</div>', unsafe_allow_html=True)
     st.markdown("""
-    - Define client's balance sheet profile 
+    - Upload or enter current asset allocation
+    - Define liability profile and balance sheet
     - Set investment constraints and regulatory limits
-    - Set features for measuring asset's expected return
-    - Specify solvency II shocks parameters 
+    - Specify duration parameters for interest rate sensitivity
     """)
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -263,10 +263,9 @@ with col2:
     st.markdown('<div class="nav-title">2️⃣ Results & Efficient Frontier</div>', unsafe_allow_html=True)
     st.markdown("""
     - View the efficient frontier curve
+    - Analyse expected return vs SCR trade-off
+    - Review marginal SCR contributions by asset class
     - Compare initial vs optimized allocations
-    - Compare initial vs optimized SCR and marginal SCR
-    - Perform sensitivity analysis under different scenarios 
-    - Export results to csv or json for further analysis or reporting purposes 
     """)
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -275,8 +274,9 @@ with col3:
     st.markdown('<div class="nav-title">3️⃣ Interactive Portfolio Selector</div>', unsafe_allow_html=True)
     st.markdown("""
     - Navigate along the efficient frontier
-    - Explore optimal allocations across different solvency-ratio levels 
-    - Review key metrics for all frontier portfolios and export any you choose
+    - Inspect optimal allocations at different risk levels
+    - Explore SCR composition and diversification benefits
+    - Evaluate capital efficiency metrics (ER/mSCR ratios)
     """)
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -286,14 +286,11 @@ with col3:
 
 st.markdown('<div class="section-header">Methodology & Solvency II Background</div>', unsafe_allow_html=True)
 
-tabs = st.tabs(["Concept", "Solvency II Market Risk", "Asset Class", "SCR Formulas", "Optimization"])
+tabs = st.tabs(["📖 Concept", "⚠️ Solvency II Market Risk", "🔢 Formulas", "📊 Capital Efficiency"])
 
 with tabs[0]:
     st.markdown("""
-    
-    Solvency II is the European Union’s risk-based regulatory framework that sets capital, governance, and reporting requirements to ensure insurers remain sufficiently resilient to financial and actuarial shocks.           
-                
-    **Insurers operating under Solvency II must hold sufficient capital to meet regulatory requirements.**
+    **Life insurers operating under Solvency II must hold sufficient capital to meet regulatory requirements.**
 
     Specifically, they must maintain a Solvency Capital Requirement (SCR) calibrated to a **99.5% confidence level** 
     over a one-year horizon. The SCR ensures the insurer can withstand extreme market events without jeopardising 
@@ -307,12 +304,11 @@ with tabs[0]:
     overall profitability. 
 
     **This optimiser helps insurers search for portfolios that maximise expected return on assets while controlling 
-    the Market Risk component of the SCR.** 
-    
-    By embedding regulatory formulas within a convex quadratic programming framework, the tool generates an efficient frontier that balances profitability with regulatory compliance.
+    the Market Risk component of the SCR.** By embedding regulatory formulas within a convex quadratic programming 
+    framework, the tool generates an efficient frontier that balances profitability with regulatory compliance.
 
-    The methodology is inspired by academic research (Kouwenberg, 2017, 2018; Braun et al., 2015). To ensure practical applicability, we propose
-    to incorporate investment limits on each asset class. 
+    The methodology is inspired by academic research (Kouwenberg, 2017, 2018; Braun et al., 2015) and applied to 
+    real-world Portuguese life insurer data, incorporating investment limits to ensure practical applicability.
     """)
 
     st.markdown(
@@ -321,79 +317,29 @@ with tabs[0]:
         'between profitability and capital efficiency.</p></div>', unsafe_allow_html=True)
 
 with tabs[1]:
+    st.markdown("**Market Risk Sub-Modules Modelled:**")
 
     col_a, col_b = st.columns(2)
 
-    # LEFT COLUMN — Market Risk Sub-Modules
     with col_a:
         st.markdown("""
-        **Market Risk Sub-Modules Modelled**
-
-        - **Interest Rate Risk**  
-          Sensitivity to upward and downward shifts in the interest rate term structure 
-
-        - **Equity Risk**  
-          Risk from changes in equity prices  
-            - *Type 1*: EEA/OECD equities (~39% shock)  
-            - *Type 2*: Non-EEA, unlisted, funds (~49% shock)  
-                    
-
-        - **Spread Risk**  
-          Risk from changes in credit spreads of corporate bonds, defined via a duration-based piecewise stress  
-
-        - **Property Risk**  
-          Risk from fluctuations in real estate values (~25% shock)  
-
-        - **Currency Risk**  
-          Assumed negligible in our work for EUR-denominated mandates with hedging
-
-        - **Concentration Risk**  
-          Assumed negligible in our work given diversified benchmarks staying below regulatory limits
+        - **Interest Rate Risk**: Sensitivity to upward and downward shifts in the interest rate term structure, 
+          affecting both assets (bonds, T-bills) and liabilities (Best Estimate of technical provisions)
+        - **Equity Risk**: Risk from changes in equity prices
+          - *Type 1*: EEA/OECD equities (~39% shock)
+          - *Type 2*: Non-EEA, unlisted, funds (~49% shock)
+        - **Property Risk**: Risk from fluctuations in real estate values (~25% shock)
         """)
 
-    # RIGHT COLUMN — Shock Parameter Details
     with col_b:
         st.markdown("""
-        **Solvency II Shock Parameters**
-
-        **Interest Rate Shock**  
-        The latest EIOPA risk-free rate term structure (Oct 2025), including the base curve and shocked up/down curves, is used. 
-        Shocks are linearly interpolated to match the client’s liability duration.  
-        (Solvency II Delegated Regulation (EU) 2015/35, Articles 164–167)
-
-        **Equity Shock**  
-        - Type 1: **39%**  
-        - Type 2: **49%**  
-        (Solvency II Delegated Regulation (EU) 2015/35, Articles 168–169)
-
-        **Spread Shock**  
-        The spread shock is applied using the Solvency II duration-based formula, where d is modified duration of corporate bond portfolio:
+        - **Spread Risk**: Risk from changes in credit spreads of corporate bonds (~10.3% risk factor for bonds)
+        - **Currency Risk**: Assumed negligible (EUR-denominated portfolio with hedging)
+        - **Concentration Risk**: Assumed negligible (diversified benchmarks ensure exposure below regulatory thresholds)
         """)
 
-        st.latex(r"""
-        {\scriptsize
-        \text{shock}(d)=
-        \begin{cases}
-        0.03\,d, & d \le 5 \\[3pt]
-        0.15 + 0.017(d-5), & 5 < d \le 10 \\[3pt]
-        0.235 + 0.012(d-10), & 10 < d \le 20 \\[3pt]
-        \min\{0.355 + 0.005(d-20),\, 1.0\}, & d > 20
-        \end{cases}
-        }
-        """)
-
-        st.markdown("*Solvency II Delegated Regulation (EU) 2015/35, Article 176*")
-
-
-        st.markdown("""
-        **Property Shock:** 25%  
-        (Solvency II Delegated Regulation (EU) 2015/35, Article 170)
-        """)
-
-# ASSET CLASSES
-with tabs[2]:
-
-    st.markdown("**Asset Classes Considered**")
+    st.markdown("")
+    st.markdown("**Asset Classes Considered:**")
 
     asset_data = {
         "Asset Class": [
@@ -425,183 +371,89 @@ with tabs[2]:
     st.table(asset_data)
 
     st.markdown("""
-    Under the Solvency II Standard Formula, each asset class is assigned prescribed shocks. These shocks determine the 
-    **stand-alone capital requirements (SCRs)** for each risk type. Stand-alone SCRs are then aggregated using the 
-    regulatory **correlation matrix**, capturing diversification benefits to produce the total Market Risk SCR.
+    Under the Solvency II Standard Formula, each asset class is subject to prescribed shocks. These shocks are used 
+    to compute **stand-alone capital requirements** for each risk type. The stand-alone SCRs are then aggregated 
+    using a **correlation matrix** to capture diversification benefits and produce the total Market Risk SCR.
     """)
 
-with tabs[3]:
+with tabs[2]:
+    st.markdown("**Stand-alone SCR for a risk type i:**")
+    st.markdown(
+        "This measures the capital required to absorb losses from a single risk factor, calculated as the absolute change in Basic Own Funds (BOF) after applying the regulatory shock.")
+    st.latex(r"SCR_i = |V_0 - V_{\text{shock}}|")
+    st.markdown(
+        "where $V_0$ is the market value before the shock and $V_{\\text{shock}}$ is the market value after applying the regulatory stress.")
 
-    st.markdown("**Stand-Alone SCR — Interest Rate Risk**")
-    st.markdown("""
-    The SCR for interest rate risk is the maximum loss between the upward and downward shocks, 
-    based on duration-weighted sensitivities of assets and liabilities:
-    """)
-    st.latex(r"""
-    SCR_{\text{IR}} =
-    \max\left\{
-    s_{\text{down}} \cdot (D_L L - \sum_i D_{A,i}A_i),\;
-    s_{\text{up}} \cdot (\sum_i D_{A,i}A_i - D_L L),\;
-    0
-    \right\}
-    """)
-
-    st.markdown("**Stand-Alone SCR — Equity Risk**")
-    st.markdown("""
-    Equity Type 1 and Type 2 are shocked separately and then aggregated using the Solvency II correlation.
-    The correlation parameter ρ = 0.75 is prescribed in the Solvency II Delegated Regulation (EU) 2015/35,
-    Annex IV – Market Risk Correlation Matrix.
-    """)
-
-    st.latex(r"""
-    SCR_1 = A_{\text{eq1}} \cdot s_1 (0.39),\quad 
-    SCR_2 = A_{\text{eq2}} \cdot s_2 (0.49)
-    """)
-
-    st.latex(r"""
-    SCR_{\text{eq}} =
-    \sqrt{
-    SCR_1^2 + 2\rho\,SCR_1 SCR_2 + SCR_2^2
-    }
-    """)
-
-    st.markdown("**Stand-Alone SCR — Spread Risk**")
-    st.markdown("""
-    The SCR for spread risk is calculated by applying the duration-based Solvency II spread shock 
-    to corporate bond exposure:
-    """)
-    st.latex(r"""
-    SCR_{\text{spr}} = A_{\text{corp}} \cdot s_{\text{spread}}(d)
-    """)
-
-
-    st.markdown("**Stand-Alone SCR — Property Risk**")
-    st.latex(r"""
-    SCR_{\text{prop}} = A_{\text{prop}} \cdot \text{s}_{property} (0.25)
-    """)
+    st.markdown("")
+    st.markdown("**Spread Risk:**")
+    st.markdown(
+        "The capital requirement for spread risk aggregates the product of market value and spread risk factor for each bond $j$.")
+    st.latex(r"SCR_{\text{spread}} = \sum_{j} MV_j \cdot s_j")
+    st.markdown(
+        "where $MV_j$ is the market value of bond $j$ and $s_j$ is the spread risk factor (approximately 10.3% for corporate bonds).")
 
     st.markdown("")
     st.markdown("**Aggregation of Market Risk Sub-Modules:**")
     st.markdown(
         "The total Market Risk SCR accounts for diversification benefits using a correlation matrix $\\rho_{ij}$:")
     st.latex(r"SCR_{\text{total}} = \sqrt{\sum_{i} \sum_{j} SCR_i \cdot SCR_j \cdot \rho_{ij}}")
+    st.markdown(
+        "This formula ensures that risks are not simply added together; instead, **correlation effects** reduce the total capital requirement when asset classes do not move perfectly together.")
 
-    st.markdown("""
-               EIOPA provides two versions of correlation matrices (Annex IV), depending on whether the decisive interest rate shock is
-                a downward or upward movement.
-    """)
-
-with tabs[4]:
-
+    st.markdown("")
     st.markdown("**Objective Function:**")
     st.markdown(
-        "The optimiser maximises expected return on asset portfolio while penalising high SCR through a penalty parameter $\\gamma$:")
-    st.latex(r"""
-    \max_{w,s} \; E[f(w,s)] = E[r_A^{T} w] - \gamma\, s^{T} R s
-    """)
+        "The optimiser maximises expected return on Basic Own Funds while penalising high SCR through a penalty parameter $\\lambda$:")
+    st.latex(r"\max \; \mathbb{E}[r^T x] - \lambda \cdot \sqrt{SCR^T \cdot \rho \cdot SCR}")
     st.markdown("""
-                Where $w$ is the vector of weights invested in each asset class, and $s$ is the vector of stand-alone SCR. 
-                $R$ is the Solvency II correlation matrix to aggregate stand-alone SCR.""")
-    st.markdown("""
-    By adjusting $\\gamma$, the model generates an efficient frontier showing the trade-off between expected 
-    return and the Market Risk solvency ratio (=BOF/SCR). Higher $\\gamma$ values prioritise capital efficiency (lower SCR), 
+    By adjusting $\\lambda$, the model generates an **efficient frontier** showing the trade-off between expected 
+    return and the Market Risk solvency ratio. Higher $\\lambda$ values prioritise capital efficiency (lower SCR), 
     while lower values prioritise return maximisation.
     """)
 
-    st.markdown("**Optimization Constraints:**")
+with tabs[3]:
+    st.markdown("**Capital Efficiency Metrics**")
 
-    st.markdown("All portfolios in the optimization must satisfy the following regulatory and model-imposed constraints:")
+    st.markdown("""
+    A critical insight from the Machado (2024) paper is the concept of **capital efficiency**, measured by the ratio 
+    of expected return to marginal SCR contribution (ER/mSCR ratio). This metric helps identify which asset classes 
+    provide the best "bang for the buck" in terms of return per unit of capital consumed.
+    """)
 
-    col1, col2 = st.columns(2)
+    st.markdown("**Key Findings from the Portuguese Life Insurer Case Study:**")
 
-    # -------------------------
-    # LEFT COLUMN
-    # -------------------------
-    with col1:
+    col_x, col_y = st.columns(2)
 
-        # ---- 1. Interest Rate ----
-        with st.expander("### 1. Interest Rate Risk Constraints (Nonlinear)", expanded=False):
-            st.markdown("The stand-alone SCR for interest rate risk must cover both upward and downward shocks:")
-            st.latex(r"""
-            s_{\text{IR}} \ge 
-            \Delta y_{\text{up}}\,(A_{\text{dur}} - L_{\text{dur}})
-            """)
-            st.latex(r"""
-            s_{\text{IR}} \ge 
-            \Delta y_{\text{down}}\,(L_{\text{dur}} - A_{\text{dur}})
-            """)
-            st.markdown("where:")
-            st.latex(r"A_{\text{dur}} = T \sum_i w_i D_{A,i}")
-            st.latex(r"L_{\text{dur}} = D_L\, L")
+    with col_x:
+        st.markdown("""
+        **Most Capital-Efficient Assets:**
+        - **Corporate Bonds** (ER/mSCR ≈ 0.60-0.61): Highest capital efficiency despite spread risk charges
+        - **Property** (ER/mSCR ≈ 0.29-0.31): Second-best efficiency, attractive for long-term investors
+        - **Government Bonds & T-Bills**: No spread risk charge, negative marginal SCR (reduce overall capital needs)
+        """)
 
-        # ---- 2. Equity ----
-        with st.expander("### 2. Equity Risk Constraint (Nonlinear)"):
-            st.markdown("The Solvency II aggregation must hold between Equity Type 1 and Type 2 exposures:")
-            st.latex(r"""
-            s_{\text{eq}} \ge
-            \sqrt{
-            SCR_1^2 + 2\rho\, SCR_1 SCR_2 + SCR_2^2
-            }
-            """)
-            st.markdown("with:")
-            st.latex(r"SCR_1 = s_1\, A_{\text{eq1}}")
-            st.latex(r"SCR_2 = s_2\, A_{\text{eq2}}")
-            st.markdown("and the Solvency II correlation:")
-            st.latex(r"\rho = 0.75")
+    with col_y:
+        st.markdown("""
+        **Less Capital-Efficient Assets:**
+        - **Equity Type 1** (MSCI World): High capital charge (~39%) limits attractiveness
+        - **Equity Type 2** (ER/mSCR ≈ 0.14-0.15): Lowest efficiency due to 49% capital charge, often excluded from optimised portfolios
+        """)
 
-        # ---- 3. Property ----
-        with st.expander("### 3. Property Risk Constraint (Nonlinear)"):
-            st.markdown("The property SCR must cover the 25% market-value shock:")
-            st.latex(r"""
-            s_{\text{prop}} \ge 0.25\, A_{\text{prop}}
-            """)
+    st.markdown("""
+    **Practical Implications:**
 
-    # -------------------------
-    # RIGHT COLUMN
-    # -------------------------
-    with col2:
+    The case study demonstrated that by reallocating from equities to corporate bonds and property, the Portuguese 
+    life insurer increased expected return on assets from **3.40% to 3.74%** while maintaining the same Market Risk 
+    SCR. This improvement was achieved by:
 
-        # ---- 4. Spread ----
-        with st.expander("### 4. Spread Risk Constraint (Nonlinear)"):
-            st.markdown("Spread SCR must cover the Solvency II duration-based spread shock:")
-            st.latex(r"""
-            s_{\text{spr}} \ge s_{\text{spread}}(d)\, A_{\text{corp}}
-            """)
-            st.markdown("where $s_{\\text{spread}}(d)$ is the duration-based Solvency II spread stress.")
+    1. **Maximising allocation to corporate bonds** (up to investment limits)
+    2. **Increasing property exposure** from 2.5% to 10.4% of assets
+    3. **Eliminating Equity Type 2** holdings entirely due to poor capital efficiency
+    4. **Reducing low-return treasury bills** to minimum liquidity requirements
 
-        # ---- 5. Budget ----
-        with st.expander("### 5. Budget Constraint (Linear)"):
-            st.markdown("Total portfolio weights must sum to 1:")
-            st.latex(r"""
-            \sum_{i=1}^{6} w_i = 1
-            """)
-
-        # ---- 6. Allocation Limits ----
-        with st.expander("### 6. Allocation Limits (Linear)"):
-            st.markdown("Each asset class must lie within its allowed minimum and maximum weights:")
-            st.latex(r"""
-            w_i^{\min} \le w_i \le w_i^{\max}
-            """)
-
-        # ---- 7. Solvency Ratio ----
-        with st.expander("### 7. Solvency Ratio Constraint (Nonlinear)"):
-            st.markdown("The portfolio must satisfy a minimum solvency ratio defined by user:")
-            st.latex(r"""
-            \frac{BOF}{SCR_{\text{market}}} \ge \text{Solvency}_{\min}
-            """)
-            st.markdown("which is equivalent to:")
-            st.latex(r"""
-            BOF - \text{Solvency}_{\min} \cdot SCR_{\text{market}} \ge 0
-            """)
-
-        # ---- 8. Non-Negativity ----
-        with st.expander("### 8. Non-Negativity of Weights and SCR Components"):
-            st.markdown("All portfolio weights and SCR components must be non-negative:")
-            st.latex(r"w_i \ge 0 \quad \text{for all asset classes } i")
-            st.latex(r"""
-            s_{\text{IR}},\; s_{\text{eq}},\; s_{\text{prop}},\; s_{\text{spr}} \ge 0
-            """)
-
+    The optimised portfolio achieved a **Market Risk Solvency Ratio of 186%**, well above regulatory minimums, 
+    while significantly improving profitability.
+    """)
 
 # ============================================================================
 # HOW TO USE THIS WEBAPP
@@ -612,10 +464,9 @@ st.markdown('<div class="section-header">How to Use This Webapp</div>', unsafe_a
 st.markdown("""
 **Follow these steps to optimise your portfolio:**
 
-1. **Define Your Current Position**: Navigate to the **Inputs** page. 
-    - Enter your current asset allocation and durations across the six asset classes and define your liability profile (Best Estimate and Duration).
-    - For expected returns and shock, you can choose to **"Auto-calculate Returns & Shocks"** to fetch market data automatically, or uncheck it to enter manual assumptions.
-    - You may select the historical window used to estimate expected returns. 
+1. **Define Your Current Position**: Navigate to the **Inputs** page and select your ETF tickers. 
+   You can choose to **"Auto-calculate Returns & Shocks"** to fetch market data automatically, or uncheck it to enter manual assumptions.
+   Enter your current asset allocation across the six asset classes and define your liability profile (Best Estimate and Duration).
 
 2. **Set Investment Constraints**: Specify investment limits for each asset class to align the optimisation with your 
    investment strategy. Common constraints include:
@@ -625,78 +476,25 @@ st.markdown("""
    - Upper and lower bounds for government bonds
 
 3. **Configure Solvency II Parameters**: 
+   - **Durations**: You must manually input the modified duration for your bond portfolios and liabilities.
    - **Auto-Mode**: If enabled, the app fetches live ECB yield curves for the risk-free rate. You can customize the *Base Risk Free Rate*, *Credit Spread Proxy*, and *Equity Risk Premium*.
    - **Manual Mode**: You can fully override all expected returns and Solvency II shock parameters (Interest Rate Up/Down, Spread, Equity, Property).
-   - You can set minimum solvency ratio you want to use in the optimization algorithm (default is 150%).
 
 4. **Run the Optimisation**: Click **"Optimize Portfolio"**. The model calculates the entire efficient frontier by solving 
    multiple convex quadratic programs (sweeping the penalty parameter $\\lambda$) to maximize return while ensuring 
-   the **Solvency Ratio remains above the defined level.
+   the **Solvency Ratio remains above 100%**.
 
 5. **Review Key Performance Indicators**: On the **Results** page, examine:
    - **Efficient Frontier Chart**: A visual plot of Expected Return vs Solvency Ratio, highlighting the current vs. optimal portfolio.
    - **Allocation Tables**: Detailed comparison of weights and amounts (in €m) between your initial and the optimal portfolio.
-   - **Risk Decomposition**: A breakdown of the SCR contribution by risk type and marginal contribution by asset class.
+   - **Risk Decomposition**: A breakdown of the Marginal SCR contribution by asset class.
    - **Capital Efficiency**: Key metrics including the Solvency Ratio, Market SCR, and Basic Own Funds (BOF).
-""")
 
-st.markdown("""
-6. **Conduct Sensitivity Analysis**: Use the scenario tabs in the Results section to test the robustness of the optimal portfolio under different market and regulatory conditions.""")
+6. **Conduct Sensitivity Analysis**: Use the tabs in the Results section to test robustness:
+   - **Return Scenarios**: Test how the optimal portfolio changes under "Pessimistic" or "Optimistic" market views.
+   - **Shock Scenarios**: See how the portfolio reacts if regulatory shocks (e.g., Equity shock) increase.
+   - **Custom Scenarios**: Define your own stress tests to see the impact on the optimal allocation.
 
-with st.expander("Return Scenarios (Profitability Stress)", expanded=False):
-
-    st.markdown("*Optimistic (+0.5%)*")
-    st.markdown("""
-    Simulates a mild bull market where expected returns across all asset classes 
-    increase by 50 bps. Tests whether the portfolio captures upside potential 
-    without breaching solvency limits.
-    """)
-
-    st.markdown("*Pessimistic (-0.5%)*")
-    st.markdown("""
-    Represents a weak or stagnant market where expected returns fall by 50 bps. 
-    Evaluates whether the portfolio remains profitable and solvent under poor performance.
-    """)
-
-    st.markdown("*Higher Equity Returns (+2.0%)*")
-    st.markdown("""
-    Assumes a strong conviction in equity markets: expected equity returns increase 
-    by 200 bps. Tests whether the optimizer shifts toward equities despite higher risk.
-    """)
-
-    st.markdown("*Lower Bond Returns (-1.0%)*")
-    st.markdown("""
-    Models a fixed-income downturn, with a 100 bps drop in bond returns. 
-    Examines whether the optimizer reallocates toward Property or Equities 
-    to maintain profitability.
-    """)
-
-# =======================
-# SHOCK SCENARIOS
-# =======================
-with st.expander("Shock Scenarios (Capital Requirement Stress)", expanded=False):
-
-    st.markdown("*Stressed Shocks (+50%)*")
-    st.markdown("""
-    A severe systemic stress test where all Solvency II capital charges increase by 50%. Tests the portfolio’s resilience under extreme regulatory tightening.
-    """)
-
-    st.markdown("*Relaxed Shocks (-30%)*")
-    st.markdown("""
-    A benign environment with capital charges reduced by 30%. Shows how much additional risk capacity appears in calm markets.
-    """)
-
-    st.markdown("*Higher Equity Shocks (+15pp)*")
-    st.markdown("""
-    Capital charges for equities rise by 15 percentage points (e.g., 39% → 54%, 49% → 64%). Tests whether equities remain attractive when their capital cost increases.
-    """)
-
-    st.markdown("*Lower Interest Rate Shocks (-20%)*")
-    st.markdown("""
-    Reduces interest rate shocks by 20%, reflecting a period of rate stability. Lowers the penalty for duration mismatch and may free up capital for other assets.
-    """)
-
-st.markdown("""
 7. **Select and Analyse Target Portfolio**: Use the **Interactive Portfolio Selector** page to:
    - Slide along the efficient frontier to pick a portfolio that matches your specific risk appetite (e.g., "Aggressive" vs "Conservative").
    - Inspect the specific allocation and risk metrics for that chosen point.
@@ -713,6 +511,12 @@ col_left, col_right = st.columns([2, 1])
 
 with col_left:
     st.markdown("""
+    **This application is based on the Master's thesis:**
+
+    *"Trade-Off Between Asset Allocation and Solvency II Requirements: The Case of a Portuguese Life Insurer"*  
+    **Daniel Alexandre da Silva Machado (2024)**  
+    Master in Actuarial Science, ISEG Lisbon School of Economics & Management
+
     **Key References:**
     - Kouwenberg, R. (2017, 2018): Strategic Asset Allocation and Risk Budgeting for Insurers under Solvency II
     - Braun et al. (2015): Portfolio Optimization under Solvency II Constraints
@@ -752,19 +556,19 @@ col1, col2, col3 = st.columns(3)
 with col1:
     st.markdown('<div class="profile-container">', unsafe_allow_html=True)
     st.markdown('<div class="profile-name">Hoai Thuong Phan</div>', unsafe_allow_html=True)
-    st.markdown('<div class="profile-role">MSc Asset & Risk Management</div>', unsafe_allow_html=True)
+    st.markdown('<div class="profile-role">MSc Quantitative Asset & Risk Management</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
 with col2:
     st.markdown('<div class="profile-container">', unsafe_allow_html=True)
     st.markdown('<div class="profile-name">Jacopo Sinigaglia</div>', unsafe_allow_html=True)
-    st.markdown('<div class="profile-role">MSc Asset & Risk Management</div>', unsafe_allow_html=True)
+    st.markdown('<div class="profile-role">MSc Quantitative Asset & Risk Management</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
 with col3:
     st.markdown('<div class="profile-container">', unsafe_allow_html=True)
     st.markdown('<div class="profile-name">Angélique Nhât-Ngân Trinh</div>', unsafe_allow_html=True)
-    st.markdown('<div class="profile-role">MSc Asset & Risk Management</div>', unsafe_allow_html=True)
+    st.markdown('<div class="profile-role">MSc Quantitative Asset & Risk Management</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown("")
@@ -776,13 +580,13 @@ col4, col5, col6 = st.columns(3)
 with col4:
     st.markdown('<div class="profile-container">', unsafe_allow_html=True)
     st.markdown('<div class="profile-name">Ruben Mimouni</div>', unsafe_allow_html=True)
-    st.markdown('<div class="profile-role">MSc Asset & Risk Management</div>', unsafe_allow_html=True)
+    st.markdown('<div class="profile-role">MSc Quantitative Asset & Risk Management</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
 with col5:
     st.markdown('<div class="profile-container">', unsafe_allow_html=True)
     st.markdown('<div class="profile-name">Maxime Bezier</div>', unsafe_allow_html=True)
-    st.markdown('<div class="profile-role">MSc Asset & Risk Management</div>', unsafe_allow_html=True)
+    st.markdown('<div class="profile-role">MSc Quantitative Asset & Risk Management</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown("")
@@ -791,8 +595,9 @@ col_disclaimer, col_contact = st.columns([3, 1])
 
 with col_disclaimer:
     st.markdown("""
-    This web application was developed as part of a **Quantitative Asset & Risk Management** course project.
-    The tool is designed for **educational and prototype purposes only** 
+    This web application was developed as part of a **Quantitative Asset & Risk Management** course project, 
+    inspired by the paper *"Trade-Off Between Asset Allocation and Solvency II Requirements – The Case of a 
+    Portuguese Life Insurer"* (Machado, 2024). The tool is designed for **educational and prototype purposes only** 
     and should not be considered as regulatory or investment advice. 
 
     **Important Disclaimers:**
