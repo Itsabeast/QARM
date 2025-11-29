@@ -189,7 +189,7 @@ use_auto_params = st.checkbox(
 
 if use_auto_params:
     st.success(
-        "✨ **Automated Mode**: Select your ETF tickers below, and all parameters will be computed automatically!")
+        "✨ **Automated Mode**: Select your ETF tickers above, and all parameters will be computed automatically!")
 else:
     st.info("📝 **Manual Mode**: You'll need to enter all parameters manually in Advanced Settings.")
 
