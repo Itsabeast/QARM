@@ -221,7 +221,7 @@ if use_auto_params:
 
     with ticker_col3:
         st.markdown("**Real Assets**")
-        ticker_prop = st.text_input("Property / Real Estate", value=st.session_state.get('ticker_prop', "SREEEX"))
+        ticker_prop = st.text_input("Property / Real Estate", value=st.session_state.get('ticker_prop', "SREEEX BW"))
         st.markdown("**Data Period**")
         lookback_years = st.slider("Historical data (years)", 1, 10, st.session_state.get('lookback_years', 5))
 
