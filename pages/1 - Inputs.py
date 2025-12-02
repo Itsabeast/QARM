@@ -221,7 +221,7 @@ if use_auto_params:
 
     with ticker_col3:
         st.markdown("**Real Assets**")
-        ticker_prop = st.text_input("Property / Real Estate", value=st.session_state.get('ticker_prop', "EUNK.DE"))
+        ticker_prop = st.text_input("Property / Real Estate", value=st.session_state.get('ticker_prop', "SREEEX"))
         st.markdown("**Data Period**")
         lookback_years = st.slider("Historical data (years)", 1, 10, st.session_state.get('lookback_years', 5))
 
@@ -384,7 +384,7 @@ if st.button("Optimize Portfolio", disabled=not can_optimize, type="primary", us
                     'corp_bond': st.session_state.get('ticker_corp', "IE15.L"),
                     'equity_1': st.session_state.get('ticker_eq1', "EUNL.DE"),
                     'equity_2': st.session_state.get('ticker_eq2', "IQQE.DE"),
-                    'property': st.session_state.get('ticker_prop', "SREEEX BW"),
+                    'property': st.session_state.get('ticker_prop', "EUNK.DE"),
                     't_bills': st.session_state.get('ticker_tbills', "CSH2.L")
                 }
 
