@@ -58,6 +58,7 @@ def fetch_ticker_prices(ticker, start_date, end_date):
         return None
 
 
+
 def validate_inputs(A_gov, A_corp, A_eq1, A_eq2, A_prop, A_tb, total_A,
                     gov_min, gov_max, corp_max, illiq_max, tb_min, tb_max):
     """Validate user inputs and return errors/warnings."""
@@ -189,7 +190,7 @@ use_auto_params = st.checkbox(
 
 if use_auto_params:
     st.success(
-        "✨ **Automated Mode**: Select your ETF tickers below, and all parameters will be computed automatically!")
+        "✨ **Automated Mode**: Select your ETF tickers above, and all parameters will be computed automatically!")
 else:
     st.info("📝 **Manual Mode**: You'll need to enter all parameters manually in Advanced Settings.")
 
@@ -220,7 +221,7 @@ if use_auto_params:
 
     with ticker_col3:
         st.markdown("**Real Assets**")
-        ticker_prop = st.text_input("Property / Real Estate", value=st.session_state.get('ticker_prop', "EUNK.DE"))
+        ticker_prop = st.text_input("Property / Real Estate", value=st.session_state.get('ticker_prop', "SREEEX BW"))
         st.markdown("**Data Period**")
         lookback_years = st.slider("Historical data (years)", 1, 10, st.session_state.get('lookback_years', 5))
 
@@ -383,7 +384,7 @@ if st.button("Optimize Portfolio", disabled=not can_optimize, type="primary", us
                     'corp_bond': st.session_state.get('ticker_corp', "IE15.L"),
                     'equity_1': st.session_state.get('ticker_eq1', "EUNL.DE"),
                     'equity_2': st.session_state.get('ticker_eq2', "IQQE.DE"),
-                    'property': st.session_state.get('ticker_prop', "EUNK.DE"),
+                    'property': st.session_state.get('ticker_prop', "SREEEX BW"),
                     't_bills': st.session_state.get('ticker_tbills', "CSH2.L")
                 }
 
@@ -413,43 +414,62 @@ if st.button("Optimize Portfolio", disabled=not can_optimize, type="primary", us
 
                     # 2. Calculate Returns using this live rate
                     # Gov Bonds: Use exact duration from input (dur_gov)
-                try:
-                    r_gov = get_interpolated_ecb_yield(dur_gov, verbose=False)
-                except:
-                    r_gov = live_rfr  # Fallback
+               # -------------------------------------------------------------
+                # FIXED LOGIC: Prioritize Tickers, Fallback to Proxies
+                # -------------------------------------------------------------
 
-                    # T-Bills: Use exact duration from input (dur_tb)
-                try:
-                    r_tb = get_interpolated_ecb_yield(dur_tb, verbose=False)
-                except:
-                    r_tb = live_rfr  # Fallback
-
-
-                # Corp Bonds: Risk Free Rate + Credit Spread (approx 1.5%)
-                hist_corp = auto_returns.get('corp_bond', -1)
-                if hist_corp < 0:
-                    r_corp = live_rfr + credit_spread # <--- FIX: Uses User Input now
-                    st.warning(f"⚠️ Historical Corp Bond return was negative. Using Proxy (RFR {live_rfr:.1%} + Spread {credit_spread:.1%} = {r_corp:.1%}).")
+                # 1. Gov Bonds: Use Ticker Return if available, else ECB Yield
+                val_gov = auto_returns.get('gov_bond', -1)
+                if val_gov != -1:
+                     r_gov = val_gov
                 else:
-                    r_corp = hist_corp
-                # Equities: Floor at Risk Free Rate + Min Premium (e.g., 2%)
-                min_equity_threshold = live_rfr + equity_risk_premium
+                    # Fallback to Risk-Free Rate if ticker is invalid
+                    try:
+                        r_gov = get_interpolated_ecb_yield(dur_gov, verbose=False)
+                    except:
+                        r_gov = live_rfr
 
+                # 2. T-Bills: Use Ticker Return if available, else ECB Yield
+                val_tb = auto_returns.get('t_bills', -1)
+                if val_tb != -1:
+                    r_tb = val_tb
+                else:
+                    try:
+                        r_tb = get_interpolated_ecb_yield(dur_tb, verbose=False)
+                    except:
+                        r_tb = live_rfr
+
+                # 3. Corp Bonds: Use Ticker Return (even if negative), else Proxy
+                val_corp = auto_returns.get('corp_bond', -1)
+                if val_corp != -1:
+                    r_corp = val_corp
+                else:
+                    # Proxy: Risk Free + Credit Spread
+                    r_corp = live_rfr + credit_spread
+                    st.warning(f"⚠️ Corp Bond data missing. Using Proxy ({r_corp:.1%}).")
+
+                # 4. Equities: Use Ticker Return (no artificial floor), else Proxy
                 val_eq1 = auto_returns.get('equity_1', -1)
-                if val_eq1 < min_equity_threshold:
-                    r_eq1 = min_equity_threshold
-                    st.warning(
-                        f"⚠️ Hist. Equity 1 return ({val_eq1:.1%}) < RFR. Using long-term assumption ({r_eq1:.1%}).")
-                else:
+                if val_eq1 != -1:
                     r_eq1 = val_eq1
+                else:
+                    r_eq1 = live_rfr + equity_risk_premium
+                    st.warning(f"⚠️ Equity 1 data missing. Using Proxy ({r_eq1:.1%}).")
 
                 val_eq2 = auto_returns.get('equity_2', -1)
-                if val_eq2 < min_equity_threshold:
-                    r_eq2 = min_equity_threshold
-                    st.warning(
-                        f"⚠️ Hist. Equity 2 return ({val_eq2:.1%}) < RFR. Using long-term assumption ({r_eq2:.1%}).")
-                else:
+                if val_eq2 != -1:
                     r_eq2 = val_eq2
+                else:
+                    r_eq2 = live_rfr + equity_risk_premium
+                    st.warning(f"⚠️ Equity 2 data missing. Using Proxy ({r_eq2:.1%}).")
+                
+                # 5. Property: Use Ticker Return, else default
+                val_prop = auto_returns.get('property', -1)
+                if val_prop != -1:
+                    r_prop = val_prop
+                else:
+                    r_prop = 0.056 # Default from manual settings
+                    st.warning(f"⚠️ Property data missing. Using default ({r_prop:.1%}).")
 
 
                 st.success(
